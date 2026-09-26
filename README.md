@@ -1,99 +1,107 @@
-# chisel-axi-utils
+# GarageWorks
 
-A lightweight set of AXI utilities written in **Chisel**.
+> **Status: alpha release.** APIs, directory layout, and build flow may change.
 
-This repository provides practical building blocks for working with AXI
-protocols, without aiming for full specification completeness. The focus
-is on simplicity, clarity, and usability in real designs.
+GarageWorks is a lightweight FPGA testing framework that lets the same cocotb
+testbench run on both software RTL simulation and FPGA hardware. A shared
+bridge abstraction hides backend-specific interfaces, while synthesizable AXI
+dispatchers written in Chisel provide design-under-test (DUT)-specific control
+and test operations on the FPGA.
 
-It includes AXI usage examples that can serve as starting templates for your
-own designs, along with examples of both Chisel testbenches and cocotb-based
-integration testbenches. Experimentally, the cocotb testbench can be converted
-into an FPGA testbench without modification, targeting the AMD Alveo V80 FPGA
-with a modified AVED environment.
+GarageWorks targets rapid bare-metal testing of standalone designs and on-chip
+processing logic (e.g., for scientific sensors), rather than full SoC-level
+prototyping. The current FPGA backend targets the AMD Alveo V80 with a
+modified AVED environment.
+
+GarageWorks started from [chisel-axi-utils](https://github.com/hwspec/chisel-axi-utils),
+which provided lightweight AXI utilities and bus-functional models (BFMs) for
+Chisel. That repository will be archived; new development continues here.
 
 Note: Instructions for testing on the V80 FPGA are not documented yet, but
 will be provided soon.
 
-### Dependencies
+## Overview
 
-#### Linux distro
+- **Shared testbench abstraction:** Write a cocotb testbench once and run it
+  in RTL simulation or on the FPGA.
+- **Backend bridges:** `cocotb_bridge` for software RTL simulation and
+  `aved_bridge` for FPGA execution through `pyaved`, exposing common
+  primitives such as soft reset, AXI read/write, and expected-value checks.
+- **Source-to-source translator:** Converts cocotb testbench code into the
+  FPGA-targeted form, so the original testbench needs no manual modification.
+- **Synthesizable AXI dispatchers:** Reusable Chisel modules for DUT-specific
+  control/status registers, queues, memories, and test sequencing.
+- **Shared configuration:** A JSON file generated from the Chisel side keeps
+  design parameters and the AXI address map consistent across the DUT,
+  dispatcher, and testbench.
+- **AXI utilities:** AXI4-Lite port bundles and simplified BFMs for Chisel.
 
-We have tested it with Ubuntu 24.04.4 LTS and Fedora 41. We believe that any newer major Linux distro works.
+## Dependencies
 
-#### JDK 8 or newer
+### Linux distro
 
-We recommend LTS releases Java 8 and Java 11. You can install the JDK as your operating system recommends, or use the prebuilt binaries from [AdoptOpenJDK](h\
-ttps://adoptopenjdk.net/).
+We have tested it with Ubuntu 24.04.4 LTS and Fedora 41. We believe that any
+newer major Linux distro works.
 
-#### SBT
+### JDK 8 or newer
 
-SBT is the most common build tool in the Scala community. You can download it [here](https://www.scala-sbt.org/download.html).
+We recommend LTS releases Java 8 and Java 11. You can install the JDK as your
+operating system recommends, or use the prebuilt binaries from
+[AdoptOpenJDK](https://adoptopenjdk.net/).
 
-#### Verilator
+### SBT
+
+SBT is the most common build tool in the Scala community. You can download it
+[here](https://www.scala-sbt.org/download.html).
+
+### Verilator
 
 Chisel and cocotb require Verilator installed. Verilator 5.044 has been tested.
 
 To build and install it locally:
 
-```bash
+```
 sh misc/build_verilator.sh INSTDIR
 ```
 
 NOTE: add INSTDIR/bin to PATH
 
-#### cocotb
+### cocotb
 
 Tested with Python 3.8+.
 
-To setup a Python virtual environment and install required packages:
+To set up a Python virtual environment and install required packages:
 
-```bash
+```
 make setup
 ```
 
 ## Examples
 
-Please look at the following files that can be used as templates for your project:
+The following files can be used as templates for your project:
 
-- `src/main/scala/axi_examples/Axi4Lite32Cmd.scala`: a Chisel module example for bridging with your device under test (DUT). It includes soft reset logic.
-- `src/test/scala/axi_examples/Axi4Lite32CmdSpec.scala`: a Chisel testbench for `Axi4Lite32Cmd`.
-- `tests/Cmd/{CmdSim.py, sim_simple.py, Makefile}`: a cocotb testbench for `Axi4Lite32Cmd`. This testbench can be converted to an FPGA testbench on AMD V80 AVED (modified version) without modification.
+- `src/main/scala/axi_examples/Axi4Lite32Cmd.scala`: a Chisel module example
+  for bridging with your DUT. It includes soft reset logic.
+- `src/test/scala/axi_examples/Axi4Lite32CmdSpec.scala`: a Chisel testbench
+  for `Axi4Lite32Cmd`.
+- `tests/Cmd/{CmdSim.py, sim_simple.py, Makefile}`: a cocotb testbench for
+  `Axi4Lite32Cmd`. This testbench can be converted to an FPGA testbench on
+  AMD V80 AVED (modified version) without modification.
 
-## Descriptions
+## AXI Utilities for Chisel
 
-Currently, the repository includes:
+Tested on Chisel 7.9.0 and Verilator 5.044.
 
--   **AXI4-Lite support**
--   AXI port bundles for easy integration into Chisel modules
--   Simplified bus function models (BFMs)
--   Example AXI-based modules
-
-AXI4-Stream and AXI4-Full support are planned and will be added
-incrementally.
-
-Tested on Chisel 7.9.0 and Verilator 5.044
-
-Note: this project is not a full-featured AXI reference
-implementation.  Instead, it provides:
-
--   Minimal and clean AXI interfaces
--   Practical subsets of the protocol
--   Clear structure suitable for integration into real hardware projects
--   Utilities that simplify testbench development
-
-The goal is to support AXI in a lightweight way.
-
-------------------------------------------------------------------------
-
-## Features
+The AXI utilities are not a full-featured AXI reference implementation.
+They provide minimal and clean interfaces, practical subsets of the protocol,
+and helpers that simplify testbench development.
 
 ### AXI Port Bundles
 
 Predefined AXI bundles that can be directly instantiated in your Chisel
 modules:
 
-``` scala
+```scala
 class MyModule(AxiAddrBW: Int = 24) extends Module {
   val io = IO(new Bundle {
     val axi = new AxiLite32IO(AxiAddrBW)
@@ -101,54 +109,40 @@ class MyModule(AxiAddrBW: Int = 24) extends Module {
 }
 ```
 
-This allows AXI interfaces to be added cleanly without rewriting channel
-wiring logic.
-
-------------------------------------------------------------------------
-
 ### Simplified Bus Function Models (BFMs)
 
-Here is an example usage of higher-level interface.
+Example usage of the higher-level interface:
 
-``` scala
-  "test AxiList32RevMem" should "pass" in {
-    simulate(new Axi4Lite32RevMem) { dut =>
-      val bfm = new Axi4Lite32BFM(dut)
-      bfm.initMaster()
-      val bresp = bfm.write(0x10, 0x123L)  // write 0x123 to the address 0x10
-      val (rdata, rresp) = bfm.read(0x10)  // read the adrress 0x10.
-	  ...
-    }
-
+```scala
+"test AxiList32RevMem" should "pass" in {
+  simulate(new Axi4Lite32RevMem) { dut =>
+    val bfm = new Axi4Lite32BFM(dut)
+    bfm.initMaster()
+    val bresp = bfm.write(0x10, 0x123L)  // write 0x123 to the address 0x10
+    val (rdata, rresp) = bfm.read(0x10)  // read the address 0x10
+    ...
+  }
+}
 ```
 
-Lower-level channel methods are also available when finer control is
-needed:
-
--   `sendAW(...)`
--   `sendW(...)`
--   `sendSimulAWW(...)`
--   `recvB(...)`
--   `sendAR(...)`
--   `recvR(...)`
-
-This makes testbench code significantly simpler while preserving
-flexibility.
-
-------------------------------------------------------------------------
+Lower-level channel methods are also available when finer control is needed:
+`sendAW(...)`, `sendW(...)`, `sendSimulAWW(...)`, `recvB(...)`,
+`sendAR(...)`, `recvR(...)`.
 
 ## Roadmap
 
-Planned additions:
+- AI-assisted generation of DUT-specific test components (AXI dispatchers,
+  address maps, Chisel/cocotb testbenches)
+- V80 FPGA test instructions and a polished FPGA driver build script
+- Additional examples (e.g., streaming data feeder and receiver)
+- AXI4-Stream utilities and partial AXI4-Full support
+- Support for additional FPGA platforms
 
--   AXI4-Stream utilities
--   Partial AXI4-Full support
--   Additional adapters and helper components
+## License
 
-
+BSD. See [LICENSE](LICENSE).
 
 ## Contact
 
-For questions, bug reports, or feature requests, please open an issue
-on GitHub. For general discussion, please use GitHub Discussions.
-
+For questions, bug reports, or feature requests, please open an issue on
+GitHub. For general discussion, please use GitHub Discussions.
