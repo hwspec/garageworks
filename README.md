@@ -40,14 +40,8 @@ will be provided soon.
 
 ### Linux distro
 
-We have tested it with Ubuntu 24.04.4 LTS and Fedora 41. We believe that any
+We have tested it with Ubuntu 24.04.4 LTS and Fedora 41 and 42. We believe that any
 newer major Linux distro works.
-
-### JDK 8 or newer
-
-We recommend LTS releases Java 8 and Java 11. You can install the JDK as your
-operating system recommends, or use the prebuilt binaries from
-[AdoptOpenJDK](https://adoptopenjdk.net/).
 
 ### SBT
 
