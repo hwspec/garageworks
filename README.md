@@ -36,6 +36,14 @@ will be provided soon.
   dispatcher, and testbench.
 - **AXI utilities:** AXI4-Lite port bundles and simplified BFMs for Chisel.
 
+## Example Project
+
+[SRV32I](https://github.com/hwspec/SRV32I) is an example project built using GarageWorks.
+
+SRV32I implements a small RV32I RISC-V processor in Chisel and demonstrates the GarageWorks workflow from RTL generation and cocotb simulation through FPGA testing.
+
+It also shows how a DUT can be integrated with the GarageWorks framework and tested using the same cocotb testbench across simulation and FPGA execution.
+
 ## Dependencies
 
 ### Linux distro
