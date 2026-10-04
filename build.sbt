@@ -1,20 +1,16 @@
 // See README.md for license details.
 
 ThisBuild / scalaVersion     := "2.13.18"
-ThisBuild / version          := "0.2.0"
-ThisBuild / organization     := "com.github.kazutomo"
+ThisBuild / version          := "0.3.0"
+ThisBuild / organization     := "io.github.hwspec"
 ThisBuild / logLevel := Level.Warn
-
-// Test / parallelExecution := false
-// Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary
-// Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 
 val chiselVersion = "7.13.0"
 val scalatestVersion = "3.2.19"
 
-lazy val chiselAxiUtils = (project in file("."))
+lazy val garageworks = (project in file("."))
   .settings(
-    name := "chisel-axi-utils",
+    name := "garageworks",
     libraryDependencies ++= Seq(
       "org.chipsalliance" %% "chisel" % chiselVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % "test",
