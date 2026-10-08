@@ -57,7 +57,7 @@ object EmitVerilog {
     println(f"Verilog generation: ${ets}%.2f sec")
 
     if (opts.contains("axiwrapper")) {
-      genAxiWrapper(targetdir, topname, "user_accel_bd_wrapper")
+      genAxiWrapper(targetdir, topname, "wrapper")
     }
     if (opts.contains("vivado")) {
       val flist = readfilelist(targetdir + "/filelist.f")

@@ -5,14 +5,13 @@
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 
-TOPNAME=user_accel_bd_wrapper
+TOPNAME=wrapper
 HWMODULENAME=Axi4Lite32TestQ
 
 SRCDIR = $(abspath ../../generated/$(HWMODULENAME))
 VERIFDIR := $(SRCDIR)/verification
 
-VERILOG_SOURCES += $(SRCDIR)/user_accel_bd_wrapper.v
-VERILOG_SOURCES += $(wildcard $(SRCDIR)/*.sv)
+VERILOG_SOURCES += $(SRCDIR)/*.v $(SRCDIR)/*.sv
 
 # Compile only the top-level verification layer.
 VERILOG_SOURCES += $(VERIFDIR)/layers-Axi4Lite32TestQ-Verification.sv

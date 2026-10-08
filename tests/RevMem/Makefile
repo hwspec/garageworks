@@ -4,7 +4,7 @@
 
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
-TOPNAME=user_accel_bd_wrapper
+TOPNAME=wrapper
 HWMODULENAME=Axi4Lite32RevMem
 SRCDIR = $(abspath ../../generated/$(HWMODULENAME))
 VERILOG_SOURCES += $(SRCDIR)/*.v $(SRCDIR)/*.sv
