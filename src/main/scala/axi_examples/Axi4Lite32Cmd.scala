@@ -1,8 +1,8 @@
 package axi_examples
 
-import axi._
-import axi.AxiLiteResp._
-import axi.AxiModuleParamsHelper._
+import garageworks._
+import garageworks.AxiLiteResp._
+import garageworks.AxiModuleParamsHelper._
 import upickle.default._
 
 import chisel3._

@@ -1,4 +1,8 @@
-package axi
+// Copyright (c) 2026, UChicago Argonne, LLC
+// All Rights Reserved
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file for details.
+package garageworks
 
 import java.io.PrintWriter
 

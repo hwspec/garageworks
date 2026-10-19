@@ -2,7 +2,7 @@
 // All Rights Reserved
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file for details.
-package axi
+package garageworks
 
 import chisel3._
 
