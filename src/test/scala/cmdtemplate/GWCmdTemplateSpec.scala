@@ -2,21 +2,21 @@
 // All Rights Reserved
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file for details.
-package axi_examples
+package cmdtemplate
 
 import chisel3.simulator.scalatest.ChiselSim
 import org.scalatest.flatspec.AnyFlatSpec
-import axi._
-import axi.AxiModuleParamsHelper._
+import garageworks._
+import garageworks.AxiModuleParamsHelper._
 
-class Axi4Lite32CmdSpec extends AnyFlatSpec with ChiselSim {
+class GWCmdTemplateSpec extends AnyFlatSpec with ChiselSim {
   val const1val = 0xbeefcafeL
   val const2val = getGitHash
   val p = CmdModuleParams.default(const1val, const2val)
 
-  "test AxiList32Cmd" should "pass" in {
-    simulate(new Axi4Lite32Cmd(p, debugprint = true)) { dut =>
-      val bfm = new Axi4Lite32BFM[Axi4Lite32Cmd](dut)
+  "test GWCmdTemplate" should "pass" in {
+    simulate(new GWCmdTemplate(p, debugprint = true)) { dut =>
+      val bfm = new Axi4Lite32BFM[GWCmdTemplate](dut)
       bfm.initMaster()
 
       bfm.expectVal(p.const1_r, const1val)
@@ -30,7 +30,7 @@ class Axi4Lite32CmdSpec extends AnyFlatSpec with ChiselSim {
       bfm.softReset(p)
       bfm.expectVal(p.dut_rw, 0)
 
-      println("Axi4Lite32Cmd test passed!!")
+      println("GWCmdTemplate test passed!!")
     }
   }
 }

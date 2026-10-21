@@ -13,7 +13,7 @@ object Axi4WriteMode {
   case object WFirst    extends AxiWriteMode
 }
 
-class Axi4Lite32BFM[D <: chisel3.Module with axi.HasAxiLite32IO](dut: D, timeoutCycles: Int = 1000) {
+class Axi4Lite32BFM[D <: chisel3.Module with HasAxiLite32IO](dut: D, timeoutCycles: Int = 1000) {
   import chisel3.simulator.PeekPokeAPI._
   import Axi4WriteMode._
   

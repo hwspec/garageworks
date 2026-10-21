@@ -53,28 +53,3 @@ trait AxiAddrMapBase {
     githash
   }
 }
-
-object Main {
-  object TestAMDef extends AxiAddrMapBase {
-    // definition to export
-    val addrMapEntries = Seq(
-      AddrMapEntry("CONST1_read_addr", 0x0),
-      AddrMapEntry("CONST2_read_addr", 0x4),
-    )
-    checkaddr(addrMapEntries)
-
-    val RESET_CYCLES = 8   // internal definition
-  }
-
-  def main(args: Array[String]): Unit = {
-    println(s"githash=${TestAMDef.githash()}")
-
-    val key = "CONST2_read_addr"
-    val const1 = TestAMDef.axiaddrmap(key)
-    println(f"${key} = 0x${const1}%08x")
-
-    val fn = "test_axi_def.txt"
-    TestAMDef.writeAddrFile(fn)
-    println(s"Generated ${fn}")
-  }
-}

@@ -1,4 +1,4 @@
-package axi_examples
+package cmdtemplate
 
 import garageworks._
 import garageworks.AxiLiteResp._
@@ -45,8 +45,8 @@ class Dut(bw: Int = 32) extends ExtModule(Map("BW" -> bw)) {
   addPath("verilog/Cmd/Dut.v")
 }
 
-class Axi4Lite32Cmd(p : CmdModuleParams, debugprint: Boolean = false)
-  extends chisel3.Module with axi.HasAxiLite32IO {
+class GWCmdTemplate(p : CmdModuleParams, debugprint: Boolean = false)
+  extends chisel3.Module with HasAxiLite32IO {
 
   val bw: Int = 32
 
@@ -186,7 +186,7 @@ class Axi4Lite32Cmd(p : CmdModuleParams, debugprint: Boolean = false)
   }
 }
 
-object Axi4Lite32Cmd extends App {
+object GWCmdTemplate extends App {
   val const1 : Long = 0xdeadbeefL // module id
   val const2 : Long = getGitHash
 
@@ -194,5 +194,5 @@ object Axi4Lite32Cmd extends App {
     CmdModuleParams.default(const1 = const1, const2 = const2),
     "CMD_MODULE_PARAMS")
 
-  EmitVerilog.generate(new Axi4Lite32Cmd(p, debugprint=true), p)
+  EmitVerilog.generate(new GWCmdTemplate(p, debugprint=true), p)
 }

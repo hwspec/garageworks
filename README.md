@@ -54,7 +54,13 @@ newer major Linux distro works.
 ### SBT
 
 SBT is the most common build tool in the Scala community. You can download it
-[here](https://www.scala-sbt.org/download.html).
+[here](https://www.scala-sbt.org/download.html), or install it via your distro's
+package manager (e.g., `sudo dnf install sbt` on Fedora).
+
+This project pins sbt 1.11.7 (see `project/build.properties`). sbt 2.x is not
+used yet because the Maven Central publishing plugins (`sbt-sonatype`,
+`sbt-pgp`) do not have a stable sbt 2.x build. The installed `sbt` launcher
+will automatically fetch and use the pinned version.
 
 ### Verilator
 
@@ -82,13 +88,16 @@ make setup
 
 The following files can be used as templates for your project:
 
-- `src/main/scala/axi_examples/Axi4Lite32Cmd.scala`: a Chisel module example
+- `src/main/scala/cmdtemplate/GWCmdTemplate.scala`: a Chisel module example
   for bridging with your DUT. It includes soft reset logic.
-- `src/test/scala/axi_examples/Axi4Lite32CmdSpec.scala`: a Chisel testbench
-  for `Axi4Lite32Cmd`.
-- `tests/Cmd/{CmdSim.py, sim_simple.py, Makefile}`: a cocotb testbench for
-  `Axi4Lite32Cmd`. This testbench can be converted to an FPGA testbench on
-  AMD V80 AVED (modified version) without modification.
+- `src/test/scala/cmdtemplate/GWCmdTemplateSpec.scala`: a Chisel testbench
+  for `GWCmdTemplate`.
+- `gwtests/{tb_cmd.py, cmd.mk, Makefile}`: a cocotb testbench for
+  `GWCmdTemplate`. This testbench can be converted to an FPGA testbench on
+  AMD V80 AVED (modified version) without modification. `Makefile` is shared
+  and repo-agnostic; `cmd.mk` holds the repo-specific settings (module name,
+  top name, generator command, ...), so the same `Makefile` can be reused by
+  other repositories (e.g., SRV32I) by dropping in a different `*.mk` file.
 
 ## AXI Utilities for Chisel
 
@@ -116,8 +125,8 @@ class MyModule(AxiAddrBW: Int = 24) extends Module {
 Example usage of the higher-level interface:
 
 ```scala
-"test AxiList32RevMem" should "pass" in {
-  simulate(new Axi4Lite32RevMem) { dut =>
+"test MyModule" should "pass" in {
+  simulate(new MyModule) { dut =>
     val bfm = new Axi4Lite32BFM(dut)
     bfm.initMaster()
     val bresp = bfm.write(0x10, 0x123L)  // write 0x123 to the address 0x10

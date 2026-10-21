@@ -85,13 +85,13 @@ class CocotbToFpgaTransformer(cst.CSTTransformer):
             return cst.RemoveFromParent()
 
         # e.g.,
-        #   from axi_test_bridge.cocotb_bridge import COCOTB_Bridge
+        #   from garageworks_bridge.cocotb_bridge import COCOTB_Bridge
         # ->
-        #   from axi_test_bridge.aved_bridge import AVED_Bridge
-        if module_code == "axi_test_bridge.cocotb_bridge":
+        #   from garageworks_bridge.aved_bridge import AVED_Bridge
+        if module_code == "garageworks_bridge.cocotb_bridge":
             return updated_node.with_changes(
                 module=cst.Attribute(
-                    value=cst.Name("axi_test_bridge"),
+                    value=cst.Name("garageworks_bridge"),
                     attr=cst.Name(f"{self.fpga.lower()}_bridge"),
                 ),
                 names=[

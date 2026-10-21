@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "axi-test-bridge"
+name = "garageworks-bridge"
 version = "0.2.0"
 requires-python = ">=3.9"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["axi_test_bridge*"]
+include = ["garageworks_bridge*"]
 
 [project.scripts]
-conv_cocotb_to_fpga = "axi_test_bridge.conv_cocotb_to_fpga:main"
+conv_cocotb_to_fpga = "garageworks_bridge.conv_cocotb_to_fpga:main"
