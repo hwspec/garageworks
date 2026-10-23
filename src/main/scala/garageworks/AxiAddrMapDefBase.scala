@@ -45,11 +45,5 @@ trait AxiAddrMapBase {
     }
   }
 
-  def githash() : Long = {
-      import scala.sys.process._
-    val githashstr = "git rev-parse HEAD".!!.trim
-    val first8 = githashstr.take(8)
-    val githash: Long = java.lang.Long.parseUnsignedLong(first8, 16)
-    githash
-  }
+  def githash() : Long = AxiModuleParamsHelper.getGitHash
 }

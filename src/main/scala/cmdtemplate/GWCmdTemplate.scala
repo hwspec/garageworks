@@ -119,7 +119,7 @@ class GWCmdTemplate(p : CmdModuleParams, debugprint: Boolean = false)
       dut.valid := true.B
       dut.in := wHoldDataReg
     }.otherwise {
-      brespReg := AxiLiteResp.SLVERR.U
+      bresp := AxiLiteResp.SLVERR.U
     }
     brespReg := bresp
     bvalidReg := true.B

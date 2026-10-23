@@ -1,7 +1,7 @@
 // See README.md for license details.
 
 ThisBuild / scalaVersion     := "2.13.18"
-ThisBuild / version          := "0.4.0"
+ThisBuild / version          := "0.4.0-SNAPSHOT"
 ThisBuild / organization     := "io.github.hwspec"
 ThisBuild / organizationName := "hwspec"
 ThisBuild / versionScheme    := Some("early-semver")
@@ -26,7 +26,11 @@ ThisBuild / developers := List(
 )
 
 ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
-ThisBuild / publishTo := sonatypePublishToBundle.value
+ThisBuild / publishTo := {
+  if (isSnapshot.value)
+    Some("central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+  else sonatypePublishToBundle.value
+}
 ThisBuild / publishMavenStyle := true
 
 val chiselVersion = "7.13.0"
@@ -48,4 +52,12 @@ lazy val garageworks = (project in file("."))
       "-Ymacro-annotations",
     ),
     addCompilerPlugin("org.chipsalliance" % "chisel-plugin" % chiselVersion cross CrossVersion.full),
+    // cmdtemplate is the integration test harness for the Axi4Lite/BFM classes,
+    // so it stays compiled and tested in src/, but it's excluded from the published artifacts.
+    Compile / packageBin / mappings ~= {
+      _.filterNot { case (_, path) => path.startsWith("cmdtemplate/") }
+    },
+    Compile / packageSrc / mappings ~= {
+      _.filterNot { case (_, path) => path.startsWith("cmdtemplate/") }
+    },
   )
