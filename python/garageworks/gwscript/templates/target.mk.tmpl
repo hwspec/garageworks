@@ -1,0 +1,15 @@
+#
+# gwscript-generated settings for Makefile.gw
+#
+HWMODULENAME={name}
+BRIDGEBN={bridge_basename}
+TOPNAME=wrapper
+SRCDIR = $(abspath {relroot}/generated/$(HWMODULENAME))
+
+# Add more cocotb test target names here (matching your tb_<name>.py files)
+TARGETS = base
+
+.DEFAULT_GOAL := base
+
+SCALA_SRCS := $(shell find {relroot}/src -name '*.scala') {relroot}/build.sbt
+GENCMD = (cd {relroot} ; sbt "runMain {chiseltop}")
