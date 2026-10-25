@@ -36,6 +36,38 @@ will be provided soon.
   dispatcher, and testbench.
 - **AXI utilities:** AXI4-Lite port bundles and simplified BFMs for Chisel.
 
+## Installation
+
+GarageWorks is alpha, so there are no stable releases yet; development
+snapshots are published continuously so other projects can depend on them
+without cloning this repo.
+
+### Chisel library (AXI utilities, dispatchers)
+
+The Chisel library (`io.github.hwspec::garageworks`, see [build.sbt](build.sbt)
+for the current `-SNAPSHOT` version) is published to Sonatype Central's Maven
+snapshot repository, so other projects can depend on it without a local
+`sbt publishLocal`. Add the snapshot resolver and the dependency to your own
+`build.sbt`:
+
+```scala
+resolvers += "central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
+
+libraryDependencies += "io.github.hwspec" %% "garageworks" % "0.4.0-SNAPSHOT"
+```
+
+### Python package (gwscript, cocotb/AVED bridges)
+
+Dev builds are published to PyPI as `.devN` releases (`N` derived from the
+commit they were built from), e.g.:
+
+```
+pip install garageworks==0.2.0.dev133255272328
+```
+
+See [PyPI](https://pypi.org/project/garageworks/#history) for the latest dev
+version.
+
 ## Example Project
 
 [SRV32I](https://github.com/hwspec/SRV32I) is an example project built using GarageWorks.
