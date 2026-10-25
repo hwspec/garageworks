@@ -34,7 +34,7 @@ sim-all: $(TARGETS)
 hw-all: $(addprefix hw_,$(TARGETS))
 
 fpga_tb_%.py: tb_%.py $(BRIDGEBN).py
-	@conv_cocotb_to_fpga $^ --force
+	@conv_cocotb_to_fpga $^ --force --fpga $${GW_BRIDGE_NAME:-AVED}
 
 .PRECIOUS: fpga_tb_%.py          # keep converted testbenches between runs
 

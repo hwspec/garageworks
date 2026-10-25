@@ -9,9 +9,8 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from . import backends, config
 from .config import (
-    AVED,
-    AVED_GIT_STAGES,
     CONFIG,
     OPTIONAL_STAGES,
     REQUIRED_STAGE_ORDER,
@@ -29,8 +28,28 @@ from .config import (
 from .shell import _tmux_alive, _tmux_session
 
 
+def result_key(name, plat=None):
+    """Storage key for a stage's status/results: namespaced '<platform>:name'
+    for platform-scoped stages (aved, buildhw, programhw, testhw), or just
+    the bare name otherwise."""
+    if name not in config.PLATFORM_STAGES:
+        return name
+    return f"{plat or config.PLATFORM}:{name}"
+
+
+def _status_keys():
+    keys = []
+    for name in STAGE_ORDER:
+        if name in config.PLATFORM_STAGES:
+            for plat in config.configured_platforms():
+                keys.append(result_key(name, plat))
+        else:
+            keys.append(name)
+    return keys
+
+
 def default_status():
-    return {name: "pending" for name in STAGE_ORDER}
+    return {key: "pending" for key in _status_keys()}
 
 
 def load_status():
@@ -59,17 +78,19 @@ def save_status(status):
         "# GarageWork build status",
         "# Values: pending, running, success, failed, interrupted",
         "# 'stale' is computed (see --status), never stored here.",
+        "# Platform-scoped stages (aved, buildhw, programhw, testhw) are",
+        "# tracked per platform as '<platform>:<stage>'.",
         "# This file is intentionally editable by hand.",
         "",
     ]
-    for name in STAGE_ORDER:
-        lines.append(f"{name}={status.get(name, 'pending')}")
+    for key in _status_keys():
+        lines.append(f"{key}={status.get(key, 'pending')}")
     STATUS_FILE.write_text("\n".join(lines) + "\n")
 
 
 def set_stage_status(name, value):
     status = load_status()
-    status[name] = value
+    status[result_key(name)] = value
     save_status(status)
 
 
@@ -94,7 +115,7 @@ def save_stage_results(data):
 
 def record_stage_success(name, result, elapsed_sec, fingerprint, provenance):
     data = load_stage_results()
-    entry = data.setdefault(name, {})
+    entry = data.setdefault(result_key(name), {})
     now = _now()
 
     entry.pop("running", None)
@@ -119,7 +140,7 @@ def record_stage_success(name, result, elapsed_sec, fingerprint, provenance):
 def record_stage_failure(name, elapsed_sec, message, provenance=None,
                          interrupted=False):
     data = load_stage_results()
-    entry = data.setdefault(name, {})
+    entry = data.setdefault(result_key(name), {})
     entry.pop("running", None)
 
     entry["last_attempt"] = {
@@ -134,12 +155,12 @@ def record_stage_failure(name, elapsed_sec, message, provenance=None,
     save_stage_results(data)
 
 
-def get_stage_info(name):
-    return load_stage_results().get(name)
+def get_stage_info(name, plat=None):
+    return load_stage_results().get(result_key(name, plat))
 
 
-def get_stage_result(name):
-    info = get_stage_info(name)
+def get_stage_result(name, plat=None):
+    info = get_stage_info(name, plat)
     if not info:
         return None
 
@@ -150,8 +171,8 @@ def get_stage_result(name):
     return last_success.get("result")
 
 
-def stage_succeeded(name):
-    return get_stage_result(name) is not None
+def stage_succeeded(name, plat=None):
+    return get_stage_result(name, plat) is not None
 
 
 # ------------------------------------------------------------------ provenance
@@ -205,8 +226,11 @@ def _gwscript_sha256():
 def provenance(name):
     """What produced this stage's result: host, tools, git state, config."""
     git = {"project": _git_info(ROOT)}
-    if name in AVED_GIT_STAGES and AVED.exists():
-        git["aved"] = _git_info(AVED)
+    if name in config.PLATFORM_STAGES:
+        backend = backends.resolve_backend(config.PLATFORM, CONFIG)
+        clone_dir = backend.clone_dir
+        if clone_dir.exists():
+            git[config.PLATFORM] = _git_info(clone_dir)
 
     return {
         "host": socket.gethostname(),
@@ -222,7 +246,7 @@ def provenance(name):
 # ------------------------------------------------------------------ staleness
 
 
-def _inputs_hash(name):
+def _inputs_hash(name, plat=None):
     spec = STAGE_INPUTS.get(name, {})
     h = hashlib.sha256()
 
@@ -242,11 +266,25 @@ def _inputs_hash(name):
     for path in spec.get("git", []):
         h.update(f"git:{path}={_git(path, 'rev-parse', 'HEAD')}\0".encode())
 
+    if name in config.PLATFORM_STAGES:
+        plat = plat or config.PLATFORM
+        prefix = f"{plat}."
+        for key in sorted(k for k in CONFIG if k.startswith(prefix)):
+            h.update(f"cfg:{key}={CONFIG[key]}\0".encode())
+
+        if name != "aved":   # the clone doesn't exist yet when aved starts
+            backend = backends.resolve_backend(plat, CONFIG)
+            clone_dir = backend.clone_dir
+            if clone_dir.exists():
+                h.update(
+                    f"git:{clone_dir}={_git(clone_dir, 'rev-parse', 'HEAD')}\0".encode()
+                )
+
     return h.hexdigest()[:16]
 
 
-def _success_run_id(data, name):
-    return ((data.get(name) or {}).get("last_success") or {}).get("run_id")
+def _success_run_id(data, name, plat=None):
+    return ((data.get(result_key(name, plat)) or {}).get("last_success") or {}).get("run_id")
 
 
 def _fingerprint(name):
@@ -260,32 +298,38 @@ def _fingerprint(name):
     }
 
 
-def stage_state(name, status=None, data=None, memo=None):
+def stage_state(name, status=None, data=None, memo=None, plat=None):
     """
     Return (state, reason).  state is the .gwstatus value, except that a
     'success' becomes 'stale' when an upstream stage re-ran (or is no longer
     successful) or the stage's own inputs changed since it succeeded.
     Records without a run_id (hand-edited or older) are trusted as success.
+
+    plat selects which platform's slot to read for a platform-scoped
+    stage (aved/buildhw/programhw/testhw); defaults to config.PLATFORM.
     """
     status = load_status() if status is None else status
     data = load_stage_results() if data is None else data
     memo = {} if memo is None else memo
+    plat = plat or config.PLATFORM
 
-    if name in memo:
-        return memo[name]
+    key = result_key(name, plat)
+    if key in memo:
+        return memo[key]
 
-    value = status.get(name, "pending")
+    value = status.get(key, "pending")
     state = (value, "")
 
-    last = (data.get(name) or {}).get("last_success") or {}
+    last = (data.get(key) or {}).get("last_success") or {}
 
     if value == "success" and "run_id" in last:
         deps = STAGE_DEPS[name]
 
         for dep in deps:
-            dep_state, _ = stage_state(dep, status, data, memo)
+            dep_platform = plat if dep in config.PLATFORM_STAGES else None
+            dep_state, _ = stage_state(dep, status, data, memo, dep_platform)
             recorded = last.get("deps", {}).get(dep)
-            current = _success_run_id(data, dep)
+            current = _success_run_id(data, dep, dep_platform)
 
             if dep_state != "success":
                 state = ("stale", f"upstream {dep} is {dep_state}")
@@ -294,10 +338,10 @@ def stage_state(name, status=None, data=None, memo=None):
                 state = ("stale", f"{dep} re-ran")
                 break
         else:
-            if last.get("inputs_hash") not in (None, _inputs_hash(name)):
+            if last.get("inputs_hash") not in (None, _inputs_hash(name, plat)):
                 state = ("stale", "inputs changed")
 
-    memo[name] = state
+    memo[key] = state
     return state
 
 
@@ -308,36 +352,49 @@ def _fmt_secs(sec):
     return f"{h}h{m:02d}m" if h else (f"{m}m{s:02d}s" if m else f"{s}s")
 
 
+def _stage_item(name, state, reason, entry):
+    """Shared shape for status_report()'s per-stage (or per-platform) entries."""
+    last = entry.get("last_success") or {}
+    item = {
+        "state": state,
+        "reason": reason,
+        "last_success": last.get("timestamp"),
+        "last_elapsed_sec": last.get("elapsed_sec"),
+    }
+
+    running = entry.get("running")
+    if state == "running" and running:
+        since = datetime.fromisoformat(running["since"])
+        item["running"] = {
+            **running,
+            "elapsed_sec": round((datetime.now() - since).total_seconds()),
+        }
+        if name in TMUX_STAGES:
+            session = _tmux_session(name)
+            item["running"]["tmux_session"] = session
+            item["running"]["tmux_alive"] = _tmux_alive(session)
+
+    return item
+
+
 def status_report():
-    """Per-stage state, plus live progress for running stages."""
+    """Per-stage state, plus live progress for running stages.  Platform-
+    scoped stages report one entry per configured platform."""
     status, data, memo = load_status(), load_stage_results(), {}
     report = []
 
     for name in STAGE_ORDER:
-        state, reason = stage_state(name, status, data, memo)
-        entry = data.get(name) or {}
-        last = entry.get("last_success") or {}
-        item = {
-            "stage": name,
-            "state": state,
-            "reason": reason,
-            "last_success": last.get("timestamp"),
-            "last_elapsed_sec": last.get("elapsed_sec"),
-        }
-
-        running = entry.get("running")
-        if state == "running" and running:
-            since = datetime.fromisoformat(running["since"])
-            item["running"] = {
-                **running,
-                "elapsed_sec": round((datetime.now() - since).total_seconds()),
-            }
-            if name in TMUX_STAGES:
-                session = _tmux_session(name)
-                item["running"]["tmux_session"] = session
-                item["running"]["tmux_alive"] = _tmux_alive(session)
-
-        report.append(item)
+        if name in config.PLATFORM_STAGES:
+            platforms = {}
+            for plat in config.configured_platforms():
+                state, reason = stage_state(name, status, data, memo, plat)
+                entry = data.get(result_key(name, plat)) or {}
+                platforms[plat] = _stage_item(name, state, reason, entry)
+            report.append({"stage": name, "platforms": platforms})
+        else:
+            state, reason = stage_state(name, status, data, memo)
+            entry = data.get(name) or {}
+            report.append({"stage": name, **_stage_item(name, state, reason, entry)})
 
     return report
 
@@ -348,15 +405,43 @@ def accept_stage(name):
     Re-fingerprints the inputs without re-running.  The run_id is kept, so
     downstream stages that used this run stay fresh.
     """
+    key = result_key(name)
     data = load_stage_results()
-    last = (data.get(name) or {}).get("last_success")
-    if load_status().get(name) != "success" or not last:
+    last = (data.get(key) or {}).get("last_success")
+    if load_status().get(key) != "success" or not last:
         raise RuntimeError(f"{name} has no successful run to accept")
 
     last["inputs_hash"] = _inputs_hash(name)
     last["accepted"] = _now()
     save_stage_results(data)
     print(f"{name}: inputs accepted")
+
+
+def _group_by_state(platforms):
+    """{platform: item} -> ['plat1,plat2:state (reason)', ...], grouping
+    platforms that share the same state+reason."""
+    groups = {}
+    for plat, item in platforms.items():
+        groups.setdefault((item["state"], item["reason"]), []).append(plat)
+
+    parts = []
+    for (state, reason), plats in groups.items():
+        label = f"{','.join(plats)}:{state}"
+        if reason:
+            label += f" ({reason})"
+        parts.append(label)
+    return parts
+
+
+def _print_running_line(prefix, item):
+    line = f"{prefix}running for {_fmt_secs(item['running']['elapsed_sec'])}"
+    if item["last_elapsed_sec"]:
+        line += f" (last took {_fmt_secs(item['last_elapsed_sec'])})"
+    if item["running"].get("log"):
+        line += f"; log: {item['running']['log']}"
+    if item["running"].get("tmux_session"):
+        line += f"; tmux attach -t {item['running']['tmux_session']}"
+    print(line)
 
 
 def show_status(as_json=False):
@@ -367,18 +452,25 @@ def show_status(as_json=False):
         return
 
     for item in report:
+        if "platforms" in item:
+            parts = _group_by_state(item["platforms"])
+            print(f"{item['stage']:12s} " + " ".join(parts))
+            for plat, pitem in item["platforms"].items():
+                if pitem.get("running"):
+                    _print_running_line(f"  {plat}: ", pitem)
+            continue
+
         line = f"{item['stage']:12s} {item['state']}"
         if item["reason"]:
             line += f" ({item['reason']})"
-        run_info = item.get("running")
-        if run_info:
-            line += f" for {_fmt_secs(run_info['elapsed_sec'])}"
+        if item.get("running"):
+            line += f" for {_fmt_secs(item['running']['elapsed_sec'])}"
             if item["last_elapsed_sec"]:
                 line += f" (last took {_fmt_secs(item['last_elapsed_sec'])})"
-            if run_info.get("log"):
-                line += f"; log: {run_info['log']}"
-            if run_info.get("tmux_session"):
-                line += f"; tmux attach -t {run_info['tmux_session']}"
+            if item["running"].get("log"):
+                line += f"; log: {item['running']['log']}"
+            if item["running"].get("tmux_session"):
+                line += f"; tmux attach -t {item['running']['tmux_session']}"
         print(line)
 
 

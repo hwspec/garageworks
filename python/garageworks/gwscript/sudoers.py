@@ -1,12 +1,16 @@
 import getpass
 import subprocess
 
-from .config import AMI_TOOL, SUDO_COMMANDS, TEE
+from . import backends, config
+
+
+def _active_backend():
+    return backends.resolve_backend(config.PLATFORM, config.CONFIG)
 
 
 def sudoers_line():
     user = getpass.getuser()
-    cmds = ", ".join([AMI_TOOL, f"{TEE} /sys/bus/pci/rescan"])
+    cmds = ", ".join(" ".join(cmd) for cmd in _active_backend().sudo_commands())
     return f"{user} ALL=(root) NOPASSWD: {cmds}"
 
 
@@ -43,7 +47,7 @@ def _nopasswd_paths():
 
 def _missing_nopasswd():
     """
-    SUDO_COMMANDS that sudo would not run without a password.
+    Backend sudo_commands() that sudo would not run without a password.
 
     `sudo -n -l <cmd>` alone isn't enough: it succeeds whenever the command is
     *allowed*, even if running it would still ask for a password.  So the
@@ -51,7 +55,7 @@ def _missing_nopasswd():
     """
     nopasswd = _nopasswd_paths()
     missing = []
-    for cmd in SUDO_COMMANDS:
+    for cmd in _active_backend().sudo_commands():
         allowed = subprocess.run(["sudo", "-n", "-l", *cmd],
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL).returncode == 0

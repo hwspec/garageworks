@@ -1,10 +1,10 @@
 import json
 import shutil
 
-from . import config
+from . import backends, config
 from .config import (
-    AVED,
     BOARD_STAGES,
+    CLEAN_ALL_FILES,
     CLEAN_DIRS,
     CLEAN_FILES,
     FPGA_SKIP_REASON,
@@ -15,6 +15,7 @@ from .config import (
     STAGE_ORDER,
     SUDO_STAGES,
     TMUX_STAGES,
+    configured_platforms,
     stage_times,
 )
 from .jobs import _check_stage_args, _run_stage_in_tmux
@@ -180,11 +181,26 @@ def _remove(path):
 
 
 def clean(all_=False):
-    """Remove state/log files; with all_, also remove the AVED-gw clone."""
+    """
+    Remove state/log files.  With all_, also remove every configured
+    backend's clone dir (not just the active platform's) and
+    .gwconfig/.gwlock (anything that requires re-running --setup/the wizard).
+    """
     for path in CLEAN_FILES + CLEAN_DIRS:
         _remove(path)
 
     if all_:
-        _remove(AVED)
+        for name in configured_platforms():
+            try:
+                backend = backends.resolve_backend(name, config.CONFIG)
+            except Exception as e:
+                print(f"{name}: could not load backend ({e}); skipping its clean paths")
+                continue
+            files, dirs = backend.clean_paths()
+            for path in files + dirs:
+                _remove(path)
+
+        for path in CLEAN_ALL_FILES:
+            _remove(path)
 
     print("Clean done." if not all_ else "Clean-all done.")

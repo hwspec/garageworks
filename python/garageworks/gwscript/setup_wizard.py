@@ -147,7 +147,7 @@ def _scaffold(root, config_file, chiseltop, testdir):
         tb_base_dst.write_text((templates / "tb_base.py").read_text())
         print(f"Wrote {tb_base_dst}")
 
-    return {"chiseltop": chiseltop, "testdir": testdir}
+    return {"chiseltop": chiseltop, "testdir": testdir, "tests": "base"}
 
 
 def run_setup_wizard(root, config_file):

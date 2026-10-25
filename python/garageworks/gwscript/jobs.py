@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from . import config
 from .config import JOBS_DIR, LOG_DIR, LOG_KEEP, ROOT, StageInterrupted, _now, stage_results, stage_times
 from .shell import _tmux_alive, _tmux_session, run
 from .stages import _latest_attempt_succeeded
@@ -16,6 +17,7 @@ from .status import (
     get_stage_result,
     load_status,
     record_stage_failure,
+    result_key,
     set_stage_status,
 )
 
@@ -91,6 +93,7 @@ def _run_stage_in_tmux(name):
         f"{shlex.quote(sys.executable)} -u "
         f"{shlex.quote(str(script))} "
         f"--direct-stage {shlex.quote(name)} "
+        f"--platform {shlex.quote(config.PLATFORM)} "
         f"--env-file {shlex.quote(str(env_file))} "
         f"2>&1 | tee {shlex.quote(str(log_path))}"
     )
@@ -123,17 +126,18 @@ def _run_stage_in_tmux(name):
         print(f"\n{name}: cancelling tmux session '{session}'", file=sys.stderr)
         subprocess.run(["tmux", "kill-session", "-t", session],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        key = result_key(name)
         for _ in range(60):          # let the child record 'interrupted'
-            if load_status().get(name) != "running":
+            if load_status().get(key) != "running":
                 break
             time.sleep(0.5)
-        if load_status().get(name) == "running":
+        if load_status().get(key) == "running":
             record_stage_failure(name, None, "interrupted (cancelled)",
                                  interrupted=True)
             set_stage_status(name, "interrupted")
         raise
 
-    state = load_status().get(name)
+    state = load_status().get(result_key(name))
 
     if state == "running":       # child died without recording (e.g. kill -9)
         record_stage_failure(

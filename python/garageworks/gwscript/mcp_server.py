@@ -3,7 +3,7 @@ import signal
 
 from .config import LOG_DIR, ROOT, STAGE_ORDER, TMUX_STAGES
 from .jobs import _gw_cli, _gw_json, _tail, job_info, list_jobs, start_job
-from .status import load_stage_results
+from .status import get_stage_info
 from .sudoers import sudoers_line
 
 
@@ -61,10 +61,12 @@ def serve_mcp():
 
     @server.tool(annotations=read_only)
     def results(stage: str) -> dict:
-        """Recorded result, timing and provenance (tools, git, config) of a stage."""
+        """Recorded result, timing and provenance (tools, git, config) of a stage.
+        For a platform-scoped stage (aved/buildhw/programhw/testhw), this is
+        the active platform's result (see --platform)."""
         if stage not in STAGE_ORDER:
             raise ValueError(f"unknown stage {stage}; one of {STAGE_ORDER}")
-        return load_stage_results().get(stage) or {}
+        return get_stage_info(stage) or {}
 
     @server.tool(annotations=read_only)
     def log(stage: str | None = None, job_id: str | None = None,
@@ -123,7 +125,8 @@ def serve_mcp():
 
     @server.tool(annotations=acts)
     def clean(all: bool = False) -> str:
-        """Remove state and log files; all=true also removes the AVED-gw clone."""
+        """Remove state and log files; all=true also removes every configured
+        backend's clone dir (e.g. AVED-gw)."""
         return _gw_cli("--clean-all" if all else "--clean")
 
     @server.tool(annotations=read_only)

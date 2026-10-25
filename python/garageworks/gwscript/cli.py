@@ -90,6 +90,16 @@ def _main():
     )
 
     parser.add_argument(
+        "--platform",
+        metavar="NAME",
+        help=(
+            "FPGA backend to target (default: aved, or 'platform=' in "
+            ".gwconfig). NAME is a built-in backend or 'module:ClassName' "
+            "for a custom one in ./gwbackends/"
+        ),
+    )
+
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show which stages would run and why, without running them",
@@ -104,7 +114,8 @@ def _main():
     parser.add_argument(
         "--clean-all",
         action="store_true",
-        help="Same as --clean, and also remove the AVED-gw directory",
+        help="Same as --clean, and also remove every configured backend's "
+             "clone dir (e.g. AVED-gw), .gwconfig, and .gwlock",
     )
 
     parser.add_argument(
@@ -175,6 +186,9 @@ def _main():
     config.FPGA_ENABLED = args.fpga or (args.stage in FPGA_STAGES) \
         or (args.direct_stage in FPGA_STAGES) \
         or (args.resume in FPGA_STAGES)
+
+    if args.platform:
+        config.PLATFORM = args.platform
 
     if args.sudoers:
         print(sudoers_line())
