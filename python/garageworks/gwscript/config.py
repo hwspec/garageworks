@@ -202,9 +202,36 @@ if "fpgatest" in CONFIG:
     print("WARNING: 'fpgatest' in .gwconfig is ignored; use --fpga instead.",
           file=sys.stderr)
 
-# Set from --fpga in main(); naming an FPGA stage explicitly also enables it.
+# Set in main(): fpga=true in .gwconfig (see --enable-fpga/--disable-fpga),
+# or --fpga to enable for just this run.
 FPGA_ENABLED = False
-FPGA_SKIP_REASON = "FPGA stages disabled (use --fpga)"
+FPGA_SKIP_REASON = "FPGA stages disabled (use --fpga, or --enable-fpga to turn on by default)"
+
+
+def fpga_enabled_default():
+    return CONFIG.get("fpga", "").strip().lower() == "true"
+
+
+def set_config_value(key, value):
+    """Persist key=value into .gwconfig, replacing an existing line for key
+    (preserving comments/other lines) or appending a new one."""
+    lines = CONFIG_FILE.read_text().splitlines() if CONFIG_FILE.exists() else []
+    new_lines, found = [], False
+
+    for raw in lines:
+        stripped = raw.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped \
+                and stripped.split("=", 1)[0].strip() == key:
+            new_lines.append(f"{key}={value}")
+            found = True
+        else:
+            new_lines.append(raw)
+
+    if not found:
+        new_lines.append(f"{key}={value}")
+
+    CONFIG_FILE.write_text("\n".join(new_lines) + "\n")
+    CONFIG[key] = value
 
 CLEAN_FILES = [
     STATUS_FILE,

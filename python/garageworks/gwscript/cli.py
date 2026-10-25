@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from . import config
-from .config import FPGA_STAGES, LOCK_FILE, STAGE_ORDER, STATUS_FILE, StageInterrupted
+from .config import LOCK_FILE, STAGE_ORDER, STATUS_FILE, StageInterrupted
 from .lock import FileLock, _acquire_project_lock, _recover_running, _refuse_if_busy
 from .mcp_server import serve_mcp
 from .orchestrate import clean, dry_run, print_timing_summary, resume_workflow, run_named_stage
@@ -86,7 +86,22 @@ def _main():
     parser.add_argument(
         "--fpga",
         action="store_true",
-        help="Enable FPGA stages (aved, buildhw, programhw, testhw)",
+        help=(
+            "Enable FPGA stages (aved, buildhw, programhw, testhw) for this "
+            "run only; see --enable-fpga to make this the default"
+        ),
+    )
+
+    fpga_default_group = parser.add_mutually_exclusive_group()
+    fpga_default_group.add_argument(
+        "--enable-fpga",
+        action="store_true",
+        help="Persist fpga=true in .gwconfig (FPGA stages run by default), then exit",
+    )
+    fpga_default_group.add_argument(
+        "--disable-fpga",
+        action="store_true",
+        help="Persist fpga=false in .gwconfig (FPGA stages off by default), then exit",
     )
 
     parser.add_argument(
@@ -183,12 +198,16 @@ def _main():
     signal.signal(signal.SIGTERM, config._on_signal)
     signal.signal(signal.SIGHUP, config._on_signal)
 
-    config.FPGA_ENABLED = args.fpga or (args.stage in FPGA_STAGES) \
-        or (args.direct_stage in FPGA_STAGES) \
-        or (args.resume in FPGA_STAGES)
+    config.FPGA_ENABLED = args.fpga or config.fpga_enabled_default()
 
     if args.platform:
         config.PLATFORM = args.platform
+
+    if args.enable_fpga or args.disable_fpga:
+        value = "true" if args.enable_fpga else "false"
+        config.set_config_value("fpga", value)
+        print(f"fpga={value} ({config.CONFIG_FILE})")
+        return
 
     if args.sudoers:
         print(sudoers_line())
