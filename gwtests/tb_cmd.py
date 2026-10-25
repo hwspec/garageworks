@@ -1,5 +1,5 @@
 import cocotb
-from garageworks_bridge.cocotb_bridge import COCOTB_Bridge
+from garageworks.bridge.cocotb_bridge import COCOTB_Bridge
 
 @cocotb.test()
 async def sim_cmd(cocotb_dut):
