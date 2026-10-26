@@ -1,9 +1,0 @@
-cocotb==1.9.2
-cocotb-bus==0.3.0
-cocotb-test==0.2.6
-cocotbext-axi==0.1.26
-libcst==1.8.6
-numpy==2.0.2
-pytest==8.4.2
-tomli==2.2.1
-

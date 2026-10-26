@@ -1,4 +1,4 @@
-TARGETS=cocotb chiselsim
+TARGETS=chiselsim
 .PHONY: $(TARGETS) clean
 
 VENV := .venv
@@ -6,20 +6,11 @@ PYTHON := $(VENV)/bin/python3
 
 export PATH := $(abspath $(VENV)/bin):$(PATH)
 
-COCOTBTESTS=RevMem Cmd TestQ
-
 all: $(TARGETS)
-
-# cocotb tests
-cocotb:
-	@source $(VENV)/bin/activate; \
-	for tt in $(COCOTBTESTS); do \
-		$(MAKE) -C tests/$$tt || exit $$?; \
-	done
 
 # Chisel test
 chiselsim:
-	@sbt test
+	@sbt "testOnly *"
 
 #
 # for setup
@@ -39,10 +30,6 @@ install-bridge:
 setup: install install-bridge
 
 clean:
-	@source $(VENV)/bin/activate; \
-	for tt in $(COCOTBTESTS); do \
-		$(MAKE) -C tests/$$tt clean || exit $$?; \
-	done
 	@rm -rf generated/*
 	@sbt clean
 

@@ -27,6 +27,8 @@ will be provided soon.
 - **Backend bridges:** `cocotb_bridge` for software RTL simulation and
   `aved_bridge` for FPGA execution through `pyaved`, exposing common
   primitives such as soft reset, AXI read/write, and expected-value checks.
+  `cocotb_bridge` keeps cocotbext-axi's per-transaction AXI logging quiet by
+  default; set `GW_AXI_LOG=1` to see it.
 - **Source-to-source translator:** Converts cocotb testbench code into the
   FPGA-targeted form, so the original testbench needs no manual modification.
 - **Synthesizable AXI dispatchers:** Reusable Chisel modules for DUT-specific
@@ -35,6 +37,38 @@ will be provided soon.
   design parameters and the AXI address map consistent across the DUT,
   dispatcher, and testbench.
 - **AXI utilities:** AXI4-Lite port bundles and simplified BFMs for Chisel.
+
+## Installation
+
+GarageWorks is alpha, so there are no stable releases yet; development
+snapshots are published continuously so other projects can depend on them
+without cloning this repo.
+
+### Chisel library (AXI utilities, dispatchers)
+
+The Chisel library (`io.github.hwspec::garageworks`, see [build.sbt](build.sbt)
+for the current `-SNAPSHOT` version) is published to Sonatype Central's Maven
+snapshot repository, so other projects can depend on it without a local
+`sbt publishLocal`. Add the snapshot resolver and the dependency to your own
+`build.sbt`:
+
+```scala
+resolvers += "central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
+
+libraryDependencies += "io.github.hwspec" %% "garageworks" % "0.4.0-SNAPSHOT"
+```
+
+### Python package (gwscript, cocotb/AVED bridges)
+
+Dev builds are published to PyPI as `.devN` releases (`N` derived from the
+commit they were built from), e.g.:
+
+```
+pip install garageworks==0.2.0.dev1792979666
+```
+
+See [PyPI](https://pypi.org/project/garageworks/#history) for the latest dev
+version.
 
 ## Example Project
 
@@ -54,7 +88,13 @@ newer major Linux distro works.
 ### SBT
 
 SBT is the most common build tool in the Scala community. You can download it
-[here](https://www.scala-sbt.org/download.html).
+[here](https://www.scala-sbt.org/download.html), or install it via your distro's
+package manager (e.g., `sudo dnf install sbt` on Fedora).
+
+This project pins sbt 1.11.7 (see `project/build.properties`). sbt 2.x is not
+used yet because the Maven Central publishing plugins (`sbt-sonatype`,
+`sbt-pgp`) do not have a stable sbt 2.x build. The installed `sbt` launcher
+will automatically fetch and use the pinned version.
 
 ### Verilator
 
@@ -82,13 +122,16 @@ make setup
 
 The following files can be used as templates for your project:
 
-- `src/main/scala/axi_examples/Axi4Lite32Cmd.scala`: a Chisel module example
+- `src/main/scala/cmdtemplate/GWCmdTemplate.scala`: a Chisel module example
   for bridging with your DUT. It includes soft reset logic.
-- `src/test/scala/axi_examples/Axi4Lite32CmdSpec.scala`: a Chisel testbench
-  for `Axi4Lite32Cmd`.
-- `tests/Cmd/{CmdSim.py, sim_simple.py, Makefile}`: a cocotb testbench for
-  `Axi4Lite32Cmd`. This testbench can be converted to an FPGA testbench on
-  AMD V80 AVED (modified version) without modification.
+- `src/test/scala/cmdtemplate/GWCmdTemplateSpec.scala`: a Chisel testbench
+  for `GWCmdTemplate`.
+- `gwtests/{tb_cmd.py, cmd.mk, Makefile}`: a cocotb testbench for
+  `GWCmdTemplate`. This testbench can be converted to an FPGA testbench on
+  AMD V80 AVED (modified version) without modification. `Makefile` is shared
+  and repo-agnostic; `cmd.mk` holds the repo-specific settings (module name,
+  top name, generator command, ...), so the same `Makefile` can be reused by
+  other repositories (e.g., SRV32I) by dropping in a different `*.mk` file.
 
 ## AXI Utilities for Chisel
 
@@ -116,8 +159,8 @@ class MyModule(AxiAddrBW: Int = 24) extends Module {
 Example usage of the higher-level interface:
 
 ```scala
-"test AxiList32RevMem" should "pass" in {
-  simulate(new Axi4Lite32RevMem) { dut =>
+"test MyModule" should "pass" in {
+  simulate(new MyModule) { dut =>
     val bfm = new Axi4Lite32BFM(dut)
     bfm.initMaster()
     val bresp = bfm.write(0x10, 0x123L)  // write 0x123 to the address 0x10
