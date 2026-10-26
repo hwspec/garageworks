@@ -27,6 +27,8 @@ will be provided soon.
 - **Backend bridges:** `cocotb_bridge` for software RTL simulation and
   `aved_bridge` for FPGA execution through `pyaved`, exposing common
   primitives such as soft reset, AXI read/write, and expected-value checks.
+  `cocotb_bridge` keeps cocotbext-axi's per-transaction AXI logging quiet by
+  default; set `GW_AXI_LOG=1` to see it.
 - **Source-to-source translator:** Converts cocotb testbench code into the
   FPGA-targeted form, so the original testbench needs no manual modification.
 - **Synthesizable AXI dispatchers:** Reusable Chisel modules for DUT-specific
@@ -62,7 +64,7 @@ Dev builds are published to PyPI as `.devN` releases (`N` derived from the
 commit they were built from), e.g.:
 
 ```
-pip install garageworks==0.2.0.dev133255272328
+pip install garageworks==0.2.0.dev1792970358
 ```
 
 See [PyPI](https://pypi.org/project/garageworks/#history) for the latest dev

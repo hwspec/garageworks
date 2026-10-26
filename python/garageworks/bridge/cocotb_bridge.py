@@ -16,6 +16,15 @@ from cocotbext.axi import AxiLiteBus, AxiLiteMaster, AxiLiteRam, AxiResp
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+AXI_BUS_PREFIX = "S_AXI"
+
+# cocotbext-axi logs every transaction at INFO under "cocotb.<dut>.<prefix>"
+# (e.g. cocotb.wrapper.S_AXI); softReset() alone polls it up to maxloopcnt
+# times, so it's suppressed by default. Set GW_AXI_LOG=1 to see it.
+def _axi_log_enabled():
+    return bool(os.environ.get("GW_AXI_LOG"))
+
+
 class COCOTB_Bridge:
     is_fpga = False
 
@@ -32,7 +41,13 @@ class COCOTB_Bridge:
     async def setup(self):
         cocotb.start_soon(Clock(self.dut.s_axi_aclk, 10, units="ns").start())
 
-        bus = AxiLiteBus.from_prefix(self.dut, "S_AXI")
+        if not _axi_log_enabled():
+            # Must be set before AxiLiteMaster() is constructed: it creates
+            # its logger (and logs the startup banner) in __init__.
+            logging.getLogger(f"cocotb.{self.dut._name}.{AXI_BUS_PREFIX}") \
+                .setLevel(logging.WARNING)
+
+        bus = AxiLiteBus.from_prefix(self.dut, AXI_BUS_PREFIX)
         self.axi_master = AxiLiteMaster(
             bus,
             self.dut.s_axi_aclk,        # lower-case clock
