@@ -64,7 +64,7 @@ Dev builds are published to PyPI as `.devN` releases (`N` derived from the
 commit they were built from), e.g.:
 
 ```
-pip install garageworks==0.2.0.dev1792970358
+pip install garageworks==0.2.0.dev1792979666
 ```
 
 See [PyPI](https://pypi.org/project/garageworks/#history) for the latest dev
