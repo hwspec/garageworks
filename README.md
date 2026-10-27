@@ -1,187 +1,71 @@
 # GarageWorks
 
-> **Status: alpha release.** APIs, directory layout, and build flow may change.
+> **Status: beta release.** APIs, directory layout, and build flow may change.
 
 GarageWorks is a lightweight FPGA testing framework that lets the same cocotb
-testbench run on both software RTL simulation and FPGA hardware. A shared
-bridge abstraction hides backend-specific interfaces, while synthesizable AXI
-dispatchers written in Chisel provide design-under-test (DUT)-specific control
-and test operations on the FPGA.
+testbench run on both software RTL simulation and FPGA hardware. See
+[docs/garageworks.md](docs/garageworks.md) for more, and [docs/](docs/) for
+tutorials and development notes.
 
-GarageWorks targets rapid bare-metal testing of standalone designs and on-chip
-processing logic (e.g., for scientific sensors), rather than full SoC-level
-prototyping. The current FPGA backend targets the AMD Alveo V80 with a
-modified AVED environment.
+## Setup
 
-GarageWorks started from [chisel-axi-utils](https://github.com/hwspec/chisel-axi-utils),
-which provided lightweight AXI utilities and bus-functional models (BFMs) for
-Chisel. That repository will be archived; new development continues here.
+### 1. Python environment
 
-Note: Instructions for testing on the V80 FPGA are not documented yet, but
-will be provided soon.
+Use conda or a venv; either works.
 
-## Overview
-
-- **Shared testbench abstraction:** Write a cocotb testbench once and run it
-  in RTL simulation or on the FPGA.
-- **Backend bridges:** `cocotb_bridge` for software RTL simulation and
-  `aved_bridge` for FPGA execution through `pyaved`, exposing common
-  primitives such as soft reset, AXI read/write, and expected-value checks.
-  `cocotb_bridge` keeps cocotbext-axi's per-transaction AXI logging quiet by
-  default; set `GW_AXI_LOG=1` to see it.
-- **Source-to-source translator:** Converts cocotb testbench code into the
-  FPGA-targeted form, so the original testbench needs no manual modification.
-- **Synthesizable AXI dispatchers:** Reusable Chisel modules for DUT-specific
-  control/status registers, queues, memories, and test sequencing.
-- **Shared configuration:** A JSON file generated from the Chisel side keeps
-  design parameters and the AXI address map consistent across the DUT,
-  dispatcher, and testbench.
-- **AXI utilities:** AXI4-Lite port bundles and simplified BFMs for Chisel.
-
-## Installation
-
-GarageWorks is alpha, so there are no stable releases yet; development
-snapshots are published continuously so other projects can depend on them
-without cloning this repo.
-
-### Chisel library (AXI utilities, dispatchers)
-
-The Chisel library (`io.github.hwspec::garageworks`, see [build.sbt](build.sbt)
-for the current `-SNAPSHOT` version) is published to Sonatype Central's Maven
-snapshot repository, so other projects can depend on it without a local
-`sbt publishLocal`. Add the snapshot resolver and the dependency to your own
-`build.sbt`:
-
-```scala
-resolvers += "central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
-
-libraryDependencies += "io.github.hwspec" %% "garageworks" % "0.4.0-SNAPSHOT"
+conda:
+```
+conda create -n garage python=3.11 pip
+conda activate garage
 ```
 
-### Python package (gwscript, cocotb/AVED bridges)
-
-Dev builds are published to PyPI as `.devN` releases (`N` derived from the
-commit they were built from), e.g.:
-
+venv:
 ```
-pip install garageworks==0.2.0.dev1792979666
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-See [PyPI](https://pypi.org/project/garageworks/#history) for the latest dev
-version.
-
-## Example Project
-
-[SRV32I](https://github.com/hwspec/SRV32I) is an example project built using GarageWorks.
-
-SRV32I implements a small RV32I RISC-V processor in Chisel and demonstrates the GarageWorks workflow from RTL generation and cocotb simulation through FPGA testing.
-
-It also shows how a DUT can be integrated with the GarageWorks framework and tested using the same cocotb testbench across simulation and FPGA execution.
-
-## Dependencies
-
-### Linux distro
-
-We have tested it with Ubuntu 24.04.4 LTS and Fedora 41 and 42. We believe that any
-newer major Linux distro works.
-
-### SBT
-
-SBT is the most common build tool in the Scala community. You can download it
-[here](https://www.scala-sbt.org/download.html), or install it via your distro's
-package manager (e.g., `sudo dnf install sbt` on Fedora).
-
-This project pins sbt 1.11.7 (see `project/build.properties`). sbt 2.x is not
-used yet because the Maven Central publishing plugins (`sbt-sonatype`,
-`sbt-pgp`) do not have a stable sbt 2.x build. The installed `sbt` launcher
-will automatically fetch and use the pinned version.
-
-### Verilator
-
-Chisel and cocotb require Verilator installed. Verilator 5.044 has been tested.
-
-To build and install it locally:
-
+Then install GarageWorks (see [docs/garageworks.md](docs/garageworks.md) for
+why the version is left unpinned):
 ```
-sh misc/build_verilator.sh INSTDIR
+pip install garageworks
 ```
 
-NOTE: add INSTDIR/bin to PATH
+To work on GarageWorks itself instead, clone this repo and install it in
+editable mode: `pip install -e python/`.
 
-### cocotb
+### 2. Other tools
 
-Tested with Python 3.8+.
+- **SBT** for Chisel RTL generation (pinned version in `project/build.properties`)
+- **Verilator** for cocotb simulation (`sh misc/build_verilator.sh INSTDIR`,
+  then add `INSTDIR/bin` to `PATH`)
+- FPGA tests additionally need **Vivado/Vitis** and an AMD Alveo V80 + AVED
+  board; see [docs/development-notes.md](docs/development-notes.md) for
+  versions and setup.
 
-To set up a Python virtual environment and install required packages:
+## Try it: the SRV32I example
+
+[SRV32I](https://github.com/hwspec/SRV32I) is a small RISC-V core that
+demonstrates the full GarageWorks workflow, from RTL generation and cocotb
+simulation through FPGA testing.
 
 ```
-make setup
+git clone https://github.com/hwspec/SRV32I
+cd SRV32I
 ```
 
-## Examples
-
-The following files can be used as templates for your project:
-
-- `src/main/scala/cmdtemplate/GWCmdTemplate.scala`: a Chisel module example
-  for bridging with your DUT. It includes soft reset logic.
-- `src/test/scala/cmdtemplate/GWCmdTemplateSpec.scala`: a Chisel testbench
-  for `GWCmdTemplate`.
-- `gwtests/{tb_cmd.py, cmd.mk, Makefile}`: a cocotb testbench for
-  `GWCmdTemplate`. This testbench can be converted to an FPGA testbench on
-  AMD V80 AVED (modified version) without modification. `Makefile` is shared
-  and repo-agnostic; `cmd.mk` holds the repo-specific settings (module name,
-  top name, generator command, ...), so the same `Makefile` can be reused by
-  other repositories (e.g., SRV32I) by dropping in a different `*.mk` file.
-
-## AXI Utilities for Chisel
-
-Tested on Chisel 7.9.0 and Verilator 5.044.
-
-The AXI utilities are not a full-featured AXI reference implementation.
-They provide minimal and clean interfaces, practical subsets of the protocol,
-and helpers that simplify testbench development.
-
-### AXI Port Bundles
-
-Predefined AXI bundles that can be directly instantiated in your Chisel
-modules:
-
-```scala
-class MyModule(AxiAddrBW: Int = 24) extends Module {
-  val io = IO(new Bundle {
-    val axi = new AxiLite32IO(AxiAddrBW)
-  })
-}
+Run the cocotb simulation test:
+```
+gwscript
 ```
 
-### Simplified Bus Function Models (BFMs)
-
-Example usage of the higher-level interface:
-
-```scala
-"test MyModule" should "pass" in {
-  simulate(new MyModule) { dut =>
-    val bfm = new Axi4Lite32BFM(dut)
-    bfm.initMaster()
-    val bresp = bfm.write(0x10, 0x123L)  // write 0x123 to the address 0x10
-    val (rdata, rresp) = bfm.read(0x10)  // read the address 0x10
-    ...
-  }
-}
+Run the FPGA test (after sourcing your Vitis/Vivado environment):
+```
+gwscript --fpga
 ```
 
-Lower-level channel methods are also available when finer control is needed:
-`sendAW(...)`, `sendW(...)`, `sendSimulAWW(...)`, `recvB(...)`,
-`sendAR(...)`, `recvR(...)`.
-
-## Roadmap
-
-- AI-assisted generation of DUT-specific test components (AXI dispatchers,
-  address maps, Chisel/cocotb testbenches)
-- V80 FPGA test instructions and a polished FPGA driver build script
-- Additional examples (e.g., streaming data feeder and receiver)
-- AXI4-Stream utilities and partial AXI4-Full support
-- Support for additional FPGA platforms
+See `gwscript --help` and [SRV32I's README](https://github.com/hwspec/SRV32I#readme)
+for more (other test targets, FPGA env variables, MCP mode).
 
 ## License
 
