@@ -11,6 +11,8 @@ from .config import (
     FPGA_STAGES,
     OPTIONAL_STAGES,
     REQUIRED_STAGE_ORDER,
+    SIM_ONLY_SKIP_REASON,
+    SIM_ONLY_STAGES,
     STAGE_DEPS,
     STAGE_ORDER,
     SUDO_STAGES,
@@ -23,8 +25,14 @@ from .stages import _execute_stage
 from .status import load_stage_results, load_status, stage_state
 
 
-def run_named_stage(name, stage_args=None):
-    """Run exactly one named stage; do not run dependencies."""
+def run_named_stage(name, stage_args=None, explicit=False):
+    """Run exactly one named stage; do not run dependencies.
+
+    explicit: the user named this stage directly (CLI positional arg or MCP
+    `run(stage=...)`), as opposed to it being picked automatically by the
+    pipeline (resume_workflow). An explicit request overrides the --fpga/
+    cocotb auto-skip below, but not the FPGA-stages-need-fpga gate above.
+    """
     stage_args = stage_args or []
 
     if name in FPGA_STAGES and not config.FPGA_ENABLED:
@@ -32,6 +40,13 @@ def run_named_stage(name, stage_args=None):
         return {
             "skipped": True,
             "reason": FPGA_SKIP_REASON,
+        }
+
+    if name in SIM_ONLY_STAGES and config.FPGA_ENABLED and not explicit:
+        print(f"{name}: skipped ({SIM_ONLY_SKIP_REASON})")
+        return {
+            "skipped": True,
+            "reason": SIM_ONLY_SKIP_REASON,
         }
 
     _check_stage_args(name, stage_args)
@@ -68,6 +83,10 @@ def plan_workflow(start_stage=None):
     for name in names:
         if name in FPGA_STAGES and not config.FPGA_ENABLED:
             plan.append((name, "skip", FPGA_SKIP_REASON))
+            continue
+
+        if name in SIM_ONLY_STAGES and config.FPGA_ENABLED:
+            plan.append((name, "skip", SIM_ONLY_SKIP_REASON))
             continue
 
         state, reason = stage_state(name, status, data, memo)
@@ -129,6 +148,9 @@ def dry_run(stage=None, stage_args=None, resume=None, as_json=False):
         ))]
         if stage in FPGA_STAGES and not config.FPGA_ENABLED:
             plan = [(stage, "skip", FPGA_SKIP_REASON)]
+        # SIM_ONLY_STAGES (cocotb) auto-skip under --fpga does not apply here:
+        # an explicitly-named stage always shows as 'run', matching
+        # run_named_stage(..., explicit=True).
     else:
         plan = plan_workflow(resume)
 

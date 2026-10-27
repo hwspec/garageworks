@@ -301,7 +301,7 @@ def _main():
                     )
                 resume_workflow()
             else:
-                run_named_stage(args.stage, args.stage_args)
+                run_named_stage(args.stage, args.stage_args, explicit=True)
 
     except (KeyboardInterrupt, StageInterrupted):
         print_timing_summary(time.monotonic() - total_start)

@@ -207,6 +207,10 @@ if "fpgatest" in CONFIG:
 FPGA_ENABLED = False
 FPGA_SKIP_REASON = "FPGA stages disabled (use --fpga, or --enable-fpga to turn on by default)"
 
+# Simulation-only stages skipped when running against real FPGA hardware.
+SIM_ONLY_STAGES = {"cocotb"}
+SIM_ONLY_SKIP_REASON = "cocotb skipped (--fpga specified)"
+
 
 def fpga_enabled_default():
     return CONFIG.get("fpga", "").strip().lower() == "true"
