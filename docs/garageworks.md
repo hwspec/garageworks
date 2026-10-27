@@ -9,12 +9,15 @@ standalone designs and on-chip processing logic (e.g., scientific sensors),
 rather than full SoC-level prototyping. The current FPGA backend targets the
 AMD Alveo V80 with a modified AVED environment.
 
-See [tutorials.md](tutorials.md) for how to test your own design, and
-[development-notes.md](development-notes.md) for GarageWorks' internals.
+See [tutorials.md](tutorials.md) for how to test your own design,
+[development-notes.md](development-notes.md) for GarageWorks' internals, and
+[development-status.md](development-status.md) for what's implemented,
+verified, and known to be missing.
 
 ## Chisel library (Maven)
 
-The Chisel library (`io.github.hwspec::garageworks`, see [build.sbt](../build.sbt)
+The Chisel library (`io.github.hwspec::garageworks`, see
+[build.sbt](https://github.com/hwspec/garageworks/blob/main/build.sbt)
 for the current `-SNAPSHOT` version) is published to Sonatype Central's Maven
 snapshot repository, so other projects can depend on it without a local `sbt
 publishLocal`. Add the snapshot resolver and the dependency to your own
@@ -44,5 +47,5 @@ history.
 
 [SRV32I](https://github.com/hwspec/SRV32I) is a small RISC-V core that
 demonstrates the full GarageWorks workflow, from RTL generation and cocotb
-simulation through FPGA testing. See the main [README](../README.md) for how
-to run it.
+simulation through FPGA testing. See the main
+[README](https://github.com/hwspec/garageworks#readme) for how to run it.

@@ -1,0 +1,15 @@
+site_name: GarageWorks
+site_description: Lightweight FPGA testing framework sharing cocotb testbenches between simulation and hardware
+repo_url: https://github.com/hwspec/garageworks
+repo_name: hwspec/garageworks
+
+docs_dir: docs
+
+nav:
+  - Home: garageworks.md
+  - Tutorials: tutorials.md
+  - Development notes: development-notes.md
+  - Development status: development-status.md
+
+theme:
+  name: readthedocs
