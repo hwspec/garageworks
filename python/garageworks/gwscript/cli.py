@@ -59,9 +59,21 @@ def _main():
         "--setup",
         metavar="CHISELTOP",
         help=(
-            "Non-interactively create .gwconfig/Makefile.gw/target.mk for "
+            "Non-interactively create .gwconfig/Makefile.gw/<pkg>.mk for "
             "CHISELTOP (package.ClassName), using gwtests as the test "
             "directory, then exit. Fails if .gwconfig already exists."
+        ),
+    )
+
+    parser.add_argument(
+        "--gwcd",
+        metavar="TARGET[:TOP]",
+        help=(
+            "Generate a GarageWorks Command Dispatcher (AXI4-Lite wrapper + "
+            "ScalaTest spec) around TARGET (a plain Chisel .scala source, or "
+            "a simple ANSI-style Verilog .v/.sv module), compile/test it, "
+            "then exit. TOP names the DUT class/module when it doesn't match "
+            "the filename. Requires ANTHROPIC_API_KEY or OPENAI_API_KEY."
         ),
     )
 
@@ -190,8 +202,11 @@ def _main():
     args = parser.parse_args()
 
     # config.py already did the scaffolding (or raised) while loading .gwconfig,
-    # before argparse ever ran -- nothing left to do but stop here.
-    if args.setup:
+    # before argparse ever ran -- whether that was explicit (--setup) or the
+    # interactive first-run wizard, stop here instead of starting stages.
+    if config.JUST_SETUP:
+        if not args.setup:
+            print("Setup complete. Re-run gwscript to start the stages.")
         return
 
     # tmux kill-session sends SIGHUP; kill sends SIGTERM -> recorded as interrupted
@@ -244,6 +259,17 @@ def _main():
     total_start = time.monotonic()
 
     try:
+        if args.gwcd:
+            if args.setup or args.stage or args.resume is not None or args.accept:
+                raise RuntimeError(
+                    "--gwcd cannot be combined with --setup, a stage, --resume, or --accept"
+                )
+            lock = _acquire_project_lock()
+            _refuse_if_busy(_recover_running())
+            from .gwcd import run_gwcd
+            run_gwcd(args.gwcd)
+            return
+
         if args.clean or args.clean_all:
             lock = _acquire_project_lock()
             _refuse_if_busy(_recover_running())

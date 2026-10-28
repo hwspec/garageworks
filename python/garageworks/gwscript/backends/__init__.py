@@ -18,7 +18,7 @@ def resolve_backend(name, cfg):
     `name` is either a built-in platform (BACKENDS above) or
     'module:ClassName' for a project-local backend: the module is imported
     from config.BACKEND_DIR (./gwbackends), mirroring how testdir holds
-    project-local target_bridge.py/tb_base.py.
+    project-local <pkg>_bridge.py/tb_base.py.
     """
     if name in BACKENDS:
         return BACKENDS[name](cfg)

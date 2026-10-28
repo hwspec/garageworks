@@ -1,8 +1,8 @@
 # Development notes
 
 Internals and background for anyone working on GarageWorks itself (as
-opposed to using it to test a design). See [tutorials.md](tutorials.md) for
-the user-facing side.
+opposed to using it to test a design). See
+[tutorial-chisel-dut.md](tutorial-chisel-dut.md) for the user-facing side.
 
 ## Internal structure
 
@@ -22,6 +22,22 @@ expected-value checks) over whatever is actually under it:
   form (`fpga_tb_*.py`), so the same testbench source drives both the `make
   <test>` (simulation) and `make hw_<test>` (FPGA) targets without manual
   changes.
+
+### gwtests/ scaffolding
+
+`Makefile.gw`, `<pkg>.mk`, `<pkg>_bridge.py`, and `tb_base.py` are generated
+by `gws` itself (`setup_wizard.py`, on first run or via `--setup`/`--gwcd`)
+the first time a project has no `.gwconfig` — they aren't hand-written or
+checked into this repo for a target project. `<pkg>.mk` derives
+`HWMODULENAME`/`PKGNAME` from `.gwconfig`'s `chiseltop=` at make time, so
+editing `chiseltop` by hand doesn't require regenerating the file.
+
+Every cocotb test module under `testdir` (`gwtests/` by default) must be
+named `tb_<name>.py`, matching an entry in `.gwconfig`'s `tests=` list and
+`Makefile.gw`'s rule `$(TARGETS) : ... MODULE=tb_$@` — e.g. `tests=base`
+requires `tb_base.py`. `conv_cocotb_to_fpga` relies on this prefix too, when
+rewriting a `tb_*.py` into its FPGA-targeted `fpga_tb_*.py` form (see
+Bridges above).
 
 ### gwscript stage pipeline
 
@@ -55,7 +71,7 @@ FPGA stages are implemented against `garageworks.gwscript.backends.Backend`
 key or `--platform`. The built-in backend is `aved` (AMD Alveo V80 + AVED).
 A project can add its own backend as `module:ClassName` in a project-local
 `gwbackends/` directory, the same extension point `testdir` uses for
-`target_bridge.py`/`tb_base.py`.
+`<pkg>_bridge.py`/`tb_base.py`.
 
 ### AXI dispatchers and shared configuration
 

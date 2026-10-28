@@ -9,7 +9,7 @@ standalone designs and on-chip processing logic (e.g., scientific sensors),
 rather than full SoC-level prototyping. The current FPGA backend targets the
 AMD Alveo V80 with a modified AVED environment.
 
-See [tutorials.md](tutorials.md) for how to test your own design,
+See [tutorial-chisel-dut.md](tutorial-chisel-dut.md) for how to test your own design,
 [development-notes.md](development-notes.md) for GarageWorks' internals, and
 [development-status.md](development-status.md) for what's implemented,
 verified, and known to be missing.

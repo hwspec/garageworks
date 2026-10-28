@@ -1,0 +1,21 @@
+#
+# gwscript-generated settings for Makefile.gw
+#
+# HWMODULENAME/PKGNAME come from .gwconfig's chiseltop=<pkg>.<ClassName>,
+# read here rather than baked in, so editing chiseltop doesn't require
+# regenerating this file.
+GWCONFIG := {relroot}/.gwconfig
+CHISELTOP := $(shell awk -F= '/^chiseltop=/{{print $$2}}' $(GWCONFIG))
+PKGNAME := $(basename $(CHISELTOP))
+HWMODULENAME := $(patsubst .%,%,$(suffix $(CHISELTOP)))
+BRIDGEBN=$(PKGNAME)_bridge
+TOPNAME=wrapper
+SRCDIR = $(abspath {relroot}/generated/$(HWMODULENAME))
+
+# Add more cocotb test target names here (matching your tb_<name>.py files)
+TARGETS = base
+
+.DEFAULT_GOAL := base
+
+SCALA_SRCS := $(shell find {relroot}/src -name '*.scala') {relroot}/build.sbt
+GENCMD = (cd {relroot} ; sbt "runMain $(PKGNAME).$(HWMODULENAME)")

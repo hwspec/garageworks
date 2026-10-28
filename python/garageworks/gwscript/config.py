@@ -89,21 +89,44 @@ def _early_setup_arg(argv):
     return None
 
 
+def _early_gwcd_arg(argv):
+    """Find --gwcd TARGET (or --gwcd=TARGET) before argparse runs."""
+    for i, arg in enumerate(argv):
+        if arg == "--gwcd" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--gwcd="):
+            return arg.split("=", 1)[1]
+    return None
+
+
+# True when this run just scaffolded .gwconfig (via --setup or the
+# interactive wizard) because it didn't exist yet -- set inside load_config().
+# main() checks this to stop after setup instead of falling through to the
+# stage-running workflow.
+JUST_SETUP = False
+
+
 def load_config():
+    global JUST_SETUP
     config = {}
     argv = sys.argv[1:]
     setup_arg = _early_setup_arg(argv)
+    gwcd_arg = _early_gwcd_arg(argv)
     clean_only = bool(_CLEAN_FLAGS & set(argv))
 
     if not CONFIG_FILE.exists():
         if setup_arg is not None:
             from . import setup_wizard   # local import: avoid a config<->setup_wizard cycle
             config = setup_wizard.run_automated_setup(ROOT, CONFIG_FILE, setup_arg)
+            JUST_SETUP = True
+        elif gwcd_arg is not None:
+            pass   # --gwcd owns its own validation/scaffolding; nothing to load yet
         elif clean_only:
             pass   # nothing to load; clean() only needs ROOT-derived paths
         elif not _noninteractive() and not (_SKIP_WIZARD_FLAGS & set(argv)):
             from . import setup_wizard   # local import: avoid a config<->setup_wizard cycle
             config = setup_wizard.run_setup_wizard(ROOT, CONFIG_FILE)
+            JUST_SETUP = True
         else:
             raise RuntimeError(
                 f"Missing config file: {CONFIG_FILE}\n"
@@ -114,7 +137,8 @@ def load_config():
                 "  chiseltop=<package>.<top-level Chisel module>\n"
                 "  testdir=<testbench directory> (optional, default: current directory)\n"
                 "\n"
-                "Or run: gwscript --setup <package>.<ClassName>"
+                "Or run: gwscript --setup <package>.<ClassName>\n"
+                "Or, if no GWCD exists yet: gwscript --gwcd filename[:topmodule]"
             )
     else:
         if setup_arg is not None:
@@ -129,7 +153,7 @@ def load_config():
             key, value = line.split("=", 1)
             config[key.strip()] = value.strip()
 
-    if clean_only:
+    if clean_only or gwcd_arg is not None:
         return config
 
     required = ["chiseltop"]

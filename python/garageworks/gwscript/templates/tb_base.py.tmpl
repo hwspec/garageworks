@@ -1,11 +1,11 @@
 import cocotb
 
-from target_bridge import TargetBridge
+from {bridge_module} import {bridge_cls}
 
 
 @cocotb.test()
 async def tb_base(cocotb_dut):
-    dut = TargetBridge(cocotb_dut)
+    dut = {bridge_cls}(cocotb_dut)
     await dut.setup()
     await dut.softReset()
 

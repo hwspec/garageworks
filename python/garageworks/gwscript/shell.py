@@ -32,7 +32,7 @@ def run(cmd, *, cwd=ROOT, env=None, ignore_returncode=False, input=None):
     return result
 
 
-def capture(cmd, *, cwd=ROOT):
+def capture(cmd, *, cwd=ROOT, timeout=None):
     result = subprocess.run(
         cmd,
         cwd=cwd,
@@ -40,6 +40,7 @@ def capture(cmd, *, cwd=ROOT):
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        timeout=timeout,
     )
     return result.stdout.strip()
 

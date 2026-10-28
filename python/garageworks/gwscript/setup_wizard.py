@@ -1,4 +1,4 @@
-"""First-run scaffolding for .gwconfig, Makefile.gw and target.mk.
+"""First-run scaffolding for .gwconfig, Makefile.gw and <pkg>.mk.
 
 Invoked by config.load_config() (via a local import, to avoid a cycle: this
 module is imported only lazily, config.py stays a leaf for everyone else)
@@ -13,10 +13,12 @@ when .gwconfig is missing. Two entry points:
     uses testdir=gwtests.
 
 Both write the same files -- .gwconfig (chiseltop, testdir, tests=base),
-Makefile.gw, target.mk, target_bridge.py (empty COCOTB_Bridge subclass)
-and tb_base.py (a minimal cocotb test using it) -- and return a dict
-shaped like a parsed .gwconfig, so load_config() can validate it exactly
-like a hand-written file.
+Makefile.gw, <pkg>.mk (named after chiseltop's package, e.g. fifo.mk for
+chiseltop=fifo.FifoGWCD; reads HWMODULENAME/PKGNAME back out of .gwconfig
+at make time instead of baking them in), <pkg>_bridge.py (empty
+COCOTB_Bridge subclass) and tb_base.py (a minimal cocotb test using it) --
+and return a dict shaped like a parsed .gwconfig, so load_config() can
+validate it exactly like a hand-written file.
 """
 
 import os
@@ -56,15 +58,19 @@ def _find_chiseltop_candidates(root):
 def _ask_chiseltop(root):
     candidates = _find_chiseltop_candidates(root)
 
-    if candidates:
-        print("Found possible chiseltop targets in src/main/scala:")
-        for i, candidate in enumerate(candidates, 1):
-            print(f"  {i}) {candidate}")
-        prompt = f"chiseltop [1-{len(candidates)}, or type package.ClassName]: "
-        if len(candidates) == 1:
-            prompt = f"chiseltop [{candidates[0]}]: "
-    else:
-        prompt = "chiseltop (package.ClassName), e.g. srv32i.AxiSRV32I: "
+    if not candidates:
+        raise RuntimeError(
+            "No GarageWorks Command Dispatcher found! Please run:\n"
+            "  gws --gwcd filename[:topmodule]\n"
+            "Note: an ANTHROPIC_API_KEY or OPENAI_API_KEY is required"
+        )
+
+    print("Found possible chiseltop targets in src/main/scala:")
+    for i, candidate in enumerate(candidates, 1):
+        print(f"  {i}) {candidate}")
+    prompt = f"chiseltop [1-{len(candidates)}, or type package.ClassName]: "
+    if len(candidates) == 1:
+        prompt = f"chiseltop [{candidates[0]}]: "
 
     while True:
         value = input(prompt).strip()
@@ -93,9 +99,16 @@ def _ask_testdir():
     return value or "gwtests"
 
 
+def _bridge_class(pkgname):
+    """e.g. "fifo" -> "FifoBridge" (matches gwproj-example's hand-written
+    gcd_bridge.py/GcdBridge convention)."""
+    return pkgname[:1].upper() + pkgname[1:] + "Bridge"
+
+
 def _scaffold(root, config_file, chiseltop, testdir):
-    name = chiseltop.rpartition(".")[2]
-    bridge_basename = "target_bridge"
+    pkgname = chiseltop.rpartition(".")[0]
+    bridge_basename = f"{pkgname}_bridge"
+    bridge_cls = _bridge_class(pkgname)
 
     tb_dir = (root / testdir).resolve()
     relroot = os.path.relpath(root, tb_dir)
@@ -120,31 +133,28 @@ def _scaffold(root, config_file, chiseltop, testdir):
         makefile_dst.write_text((templates / "Makefile.gw").read_text())
         print(f"Wrote {makefile_dst}")
 
-    target_mk_dst = tb_dir / "target.mk"
-    if target_mk_dst.exists():
-        print(f"{target_mk_dst} already exists, left as is.")
+    pkg_mk_dst = tb_dir / f"{pkgname}.mk"
+    if pkg_mk_dst.exists():
+        print(f"{pkg_mk_dst} already exists, left as is.")
     else:
-        tmpl = (templates / "target.mk.tmpl").read_text()
-        target_mk_dst.write_text(tmpl.format(
-            name=name,
-            bridge_basename=bridge_basename,
-            relroot=relroot,
-            chiseltop=chiseltop,
-        ))
-        print(f"Wrote {target_mk_dst}")
+        tmpl = (templates / "pkg.mk.tmpl").read_text()
+        pkg_mk_dst.write_text(tmpl.format(relroot=relroot))
+        print(f"Wrote {pkg_mk_dst}")
 
     bridge_dst = tb_dir / f"{bridge_basename}.py"
     if bridge_dst.exists():
         print(f"{bridge_dst} already exists, left as is.")
     else:
-        bridge_dst.write_text((templates / "target_bridge.py").read_text())
+        tmpl = (templates / "bridge.py.tmpl").read_text()
+        bridge_dst.write_text(tmpl.format(bridge_cls=bridge_cls))
         print(f"Wrote {bridge_dst}")
 
     tb_base_dst = tb_dir / "tb_base.py"
     if tb_base_dst.exists():
         print(f"{tb_base_dst} already exists, left as is.")
     else:
-        tb_base_dst.write_text((templates / "tb_base.py").read_text())
+        tmpl = (templates / "tb_base.py.tmpl").read_text()
+        tb_base_dst.write_text(tmpl.format(bridge_module=bridge_basename, bridge_cls=bridge_cls))
         print(f"Wrote {tb_base_dst}")
 
     return {"chiseltop": chiseltop, "testdir": testdir, "tests": "base"}
@@ -158,12 +168,13 @@ def run_setup_wizard(root, config_file):
     chiseltop = _ask_chiseltop(root)
     testdir = _ask_testdir()
 
+    pkgname = chiseltop.rpartition(".")[0]
     tb_dir = (root / testdir).resolve()
     print("\nAbout to create:")
     print(f"  {config_file}  (chiseltop={chiseltop}, testdir={testdir}, tests=base)")
     print(f"  {tb_dir / 'Makefile.gw'}")
-    print(f"  {tb_dir / 'target.mk'}")
-    print(f"  {tb_dir / 'target_bridge.py'}")
+    print(f"  {tb_dir / (pkgname + '.mk')}")
+    print(f"  {tb_dir / (pkgname + '_bridge.py')}")
     print(f"  {tb_dir / 'tb_base.py'}")
 
     confirm = input("\nProceed? [Y/n]: ").strip().lower()

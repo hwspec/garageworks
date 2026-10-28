@@ -67,6 +67,8 @@ gwscript --fpga
 See `gwscript --help` and [SRV32I's README](https://github.com/hwspec/SRV32I#readme)
 for more (other test targets, FPGA env variables, MCP mode).
 
+`gws` is installed as a shorter alias for `gwscript`.
+
 ## License
 
 BSD. See [LICENSE](LICENSE).
