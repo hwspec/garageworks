@@ -71,20 +71,26 @@ def rtlgen():
     return {"generated_dir": str(GENERATED)}
 
 
-def cocotb():
-    if not TESTS:
+def cocotb(*testnames):
+    tests = list(testnames) if testnames else TESTS
+    if not tests:
         raise RuntimeError("No tests defined in .gwconfig (example: tests=basic,loop)")
 
     run(["make", "-f", "Makefile.gw", "-C", str(TB_DIR), "clean"])
 
-    for testname in TESTS:
+    for testname in tests:
         print(f"\nRunning cocotb test target: {testname}")
         run(["make", "-f", "Makefile.gw", "-C", str(TB_DIR), testname])
 
     return {
         "testdir": str(TB_DIR),
-        "tests": TESTS,
+        "tests": tests,
     }
+
+
+def list_test_targets():
+    """Test target names shared by cocotb and testhw (TARGETS in <pkg>.mk)."""
+    run(["make", "-f", "Makefile.gw", "-C", str(TB_DIR), "list"])
 
 
 def aved():

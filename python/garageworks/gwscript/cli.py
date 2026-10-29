@@ -14,7 +14,7 @@ from .lock import FileLock, _acquire_project_lock, _recover_running, _refuse_if_
 from .mcp_server import serve_mcp
 from .orchestrate import clean, dry_run, print_timing_summary, resume_workflow, run_named_stage
 from .shell import _cmd_str
-from .stages import _execute_stage
+from .stages import _execute_stage, list_test_targets
 from .status import accept_stage, default_status, load_status, save_status, show_next, show_status
 from .sudoers import sudoers_line
 
@@ -195,8 +195,13 @@ def _main():
 
     parser.add_argument(
         "stage_args",
-        nargs="*",
-        help="Optional arguments for the selected stage",
+        nargs=argparse.REMAINDER,
+        help=(
+            "Optional arguments for the selected stage. cocotb accepts test "
+            "target names (default: tests= in .gwconfig); testhw accepts at "
+            "most one test name. Both accept -l/--list to print the "
+            "available targets instead of running."
+        ),
     )
 
     args = parser.parse_args()
@@ -207,6 +212,12 @@ def _main():
     if config.JUST_SETUP:
         if not args.setup:
             print("Setup complete. Re-run gwscript to start the stages.")
+        return
+
+    if args.stage in ("cocotb", "testhw") and any(
+        a in ("-l", "--list") for a in args.stage_args
+    ):
+        list_test_targets()
         return
 
     # tmux kill-session sends SIGHUP; kill sends SIGTERM -> recorded as interrupted

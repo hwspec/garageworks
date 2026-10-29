@@ -169,6 +169,8 @@ def _check_stage_args(name, stage_args):
     if name == "testhw":
         if len(stage_args) > 1:
             raise RuntimeError("testhw accepts at most one test name")
+    elif name == "cocotb":
+        pass  # any number of test target names (default: tests= in .gwconfig)
     elif stage_args:
         raise RuntimeError(f"Stage {name} does not accept positional arguments")
 
