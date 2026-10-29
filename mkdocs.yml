@@ -9,6 +9,7 @@ nav:
   - Home: garageworks.md
   - Tutorial (Chisel DUT): tutorial-chisel-dut.md
   - gwproj-example: gwproj-example.md
+  - MCP with Claude Code: mcp-claudecode-example.md
   - Development notes: development-notes.md
   - Development status: development-status.md
 
