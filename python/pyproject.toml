@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gwcd = ["anthropic", "openai"]
+mcp = ["mcp"]
 
 [tool.setuptools.packages.find]
 where = ["."]

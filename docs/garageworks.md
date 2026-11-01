@@ -10,6 +10,9 @@ rather than full SoC-level prototyping. The current FPGA backend targets the
 AMD Alveo V80 with a modified AVED environment.
 
 See [tutorial-chisel-dut.md](tutorial-chisel-dut.md) for how to test your own design,
+[gwproj-example.md](gwproj-example.md) for a walkthrough of a complete example project,
+[mcp-claudecode-example.md](mcp-claudecode-example.md) for driving `gwscript` from
+Claude Code over MCP (including a remote FPGA host),
 [development-notes.md](development-notes.md) for GarageWorks' internals, and
 [development-status.md](development-status.md) for what's implemented,
 verified, and known to be missing.

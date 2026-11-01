@@ -5,8 +5,8 @@ end-to-end, recent CLI-facing changes, and known limitations. Kept up to
 date as `gwscript` and the bridges evolve; see [development-notes.md](development-notes.md)
 for the architecture itself.
 
-Last updated: 2026-10-28 (uncommitted: `gwscript --gwcd`, tutorial rewrite,
-`getGitHash` non-git fallback fix, `--gwcd` auto-adds missing garageworks dep).
+Last updated: 2026-10-31 (`cocotb`/`testhw` test-target arguments and
+`-l/--list`; MCP + Claude Code guide).
 
 ## Implemented
 
@@ -18,7 +18,7 @@ Last updated: 2026-10-28 (uncommitted: `gwscript --gwcd`, tutorial rewrite,
   enables the hardware stages for a run; without it they're skipped. As of
   `fb92b92`, the reverse also holds: `--fpga` skips `cocotb` automatically
   during the normal pipeline (it's simulation-only), but `cocotb` can still
-  be run explicitly by name (`gwscript cocotb --fpga`).
+  be run explicitly by name (`gwscript cocotb`).
 - **Pluggable FPGA backends**: `garageworks.gwscript.backends.Backend`
   (`fetch`/`build`/`program`/`test`), selected via `.gwconfig`'s `platform=`
   or `--platform`, with a built-in `aved` backend and a project-local
@@ -52,6 +52,8 @@ Last updated: 2026-10-28 (uncommitted: `gwscript --gwcd`, tutorial rewrite,
   snapshots (`io.github.hwspec::garageworks`); Python package (`gwscript` +
   bridges) published to PyPI as dev (`.devN`) builds only, no stable release
   yet.
+- **`mcp` extra** (2026-10-31): `pip install "garageworks[mcp]"` installs
+  the `mcp` package needed by `gwscript --mcp`.
 - **MkDocs site** (`mkdocs.yml`, added this session): renders `docs/` with
   the `readthedocs` theme; `mkdocs build --strict` passes clean.
 - **`docs/tutorial-chisel-dut.md`** (replaces the old `docs/tutorials.md`,
@@ -74,6 +76,17 @@ Last updated: 2026-10-28 (uncommitted: `gwscript --gwcd`, tutorial rewrite,
   name that doesn't exist yet. `verilog_parse.py` parses params/ports of
   simple Verilog module headers standalone. `--updategwcd` and
   non-"simple" Verilog are explicitly out of scope.
+- **Per-test stage arguments** (`6da01be`): `gwscript cocotb [TEST ...]`
+  runs only the named cocotb test targets instead of `.gwconfig`'s
+  `tests=` list (default when none are given); `gwscript testhw [TEST]`
+  takes at most one. `gwscript cocotb -l` / `gwscript testhw --list` print
+  the available targets (`make -f Makefile.gw list`, i.e. `TARGETS` in
+  `<pkg>.mk`) without running anything. The MCP `run` tool's `stage_args`
+  passes through the same way.
+- **`docs/mcp-claudecode-example.md`** (`1b7bbfe`): registering
+  `gwscript --mcp` with Claude Code (`claude mcp add`), including a remote
+  FPGA host over one or two SSH hops, remote conda/venv `PATH` pitfalls,
+  and routing conventions between a local and a remote server.
 
 ## Verified examples
 

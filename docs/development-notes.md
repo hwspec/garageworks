@@ -58,6 +58,11 @@ prereq -> rtlgen -> cocotb -> fpgatiming -> aved -> buildhw -> programhw -> test
 - State lives in two project-local files: `.gwstatus` (per-stage
   pending/running/success/failed/interrupted; intentionally hand-editable)
   and `.gwstage-results.json` (provenance, input fingerprints).
+- `cocotb` and `testhw` accept test target names as stage arguments
+  (`gws cocotb base loop`, `gws testhw base`; `-l/--list` prints the
+  `TARGETS` from `<pkg>.mk`). Other stages reject positional arguments.
+  Everything after the stage name goes to the stage, so gwscript options
+  must precede it.
 - `.gwlock` serializes one `gwscript` per project; `programhw`/`testhw` also
   take a per-board lock under `/tmp`, shared across users/projects.
 

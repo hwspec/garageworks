@@ -58,8 +58,9 @@ tests=base
 ```
 
 — it generates RTL for `axigcd.AxiGCD`, then runs the cocotb test(s) named
-in `tests` (here, `gwtests/tb_base.py`). You can drive the same thing
-directly with `make`:
+in `tests` (here, `gwtests/tb_base.py`). To run a subset, name the tests
+after the stage (`gwscript cocotb base`); `gwscript cocotb -l` lists them.
+You can drive the same thing directly with `make`:
 
 ```sh
 cd gwtests

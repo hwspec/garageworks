@@ -229,6 +229,9 @@ the cocotb test(s) named in `tests=` against it under Verilator — the same
 checks as `FifoGWCDSpec.scala`, exercised through the cocotb/AXI bridge
 instead of ChiselSim.
 
+To run just some of the tests, name them after the stage (`gws cocotb
+base`); `gws cocotb -l` lists the available test targets.
+
 ## 6. Run it on FPGA
 
 ```sh
